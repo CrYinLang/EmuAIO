@@ -9,7 +9,7 @@ import os
 
 requests.packages.urllib3.disable_warnings()
 
-Last_change_time = 2512212154
+Last_change_time = 2512211005
 
 port=5555
 cool_time = 3
@@ -136,7 +136,7 @@ def normalize_train_model_for_icon(raw_model, raw_number):
     return normalized
 
 # ==================================================
-# 本地数据库查询（SQLite）
+# 本地数据库查询
 # ==================================================
 def search_local_db(last_four_digits: str):
     """按车组号后四位模糊查询本地 data.db"""
@@ -206,16 +206,34 @@ def search_local_db(last_four_digits: str):
 # ==================================================
 def fetch_rail_re(query_type: str, keyword: str):
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0"
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/135.0.0.0 Safari/537.36"
+        )
     }
+
     try:
         if query_type == 'train_code':
             url = f"https://api.rail.re/train/{keyword.upper()}"
+            print(url)
+
         elif query_type == 'emu_number':
-            digits = extract_last_four_digits(keyword)
-            if not digits:
+            if not keyword:
                 return None
-            url = f"https://api.rail.re/emu/{digits}"
+
+            # ✅ 如果包含字母，视为“完整车号”
+            if any(c.isalpha() for c in keyword):
+                emu = keyword.replace('-', '').upper()
+                url = f"https://api.rail.re/emu/{emu}"
+                print(url)
+            else:
+                digits = extract_last_four_digits(keyword)
+                if not digits:
+                    return None
+                url = f"https://api.rail.re/emu/{digits}"
+                print(url)
+
         else:
             return None
 
@@ -223,179 +241,152 @@ def fetch_rail_re(query_type: str, keyword: str):
         if resp.ok:
             resp.encoding = 'utf-8'
             return resp.text
+
         return None
+
     except Exception as e:
         app.logger.error(f"[rail.re Error] {e}")
         return None
-
+        
 # ==================================================
 # 主查询逻辑（修复版：统一参数为 show_routes，并完善 fallback）
 # ==================================================
 def search_train_vehicle(*, keyword: str, search_type: str, query_time: float):
     app.logger.info(f"[查询] keyword={keyword}, type={search_type}")
 
-    # 用于保存实时交路信息（车次 + 时间）
     current_train_no = None
     route_time_str = None
-
-    # Step 1: 获取实时 emu_no 和交路信息
     realtime_emu_no = None
     realtime_prefix = None
 
+    # ==================================================
+    # Step 1: 车次查询 → 必须走在线
+    # ==================================================
     if search_type == 'trainCode':
         raw = fetch_rail_re('train_code', keyword)
         if not raw or raw in ('', '[]'):
             return [], 'network', '未查询到该车次信息'
+
         try:
             data = json.loads(raw)
             if not data:
                 return [], 'network', '该车次暂无运行记录'
+
             latest = data[0]
             realtime_emu_no = latest.get('emu_no', '').strip()
             if not realtime_emu_no:
                 return [], 'network', '无法解析车组号'
+
             realtime_prefix = realtime_emu_no[:5].upper()
-
             current_train_no = latest.get('train_no', '').strip()
-            date_part = latest.get('date', '')
-            time_part = latest.get('time', '')  # 如 "20:03"
-            if time_part and ':' in time_part:
-                route_time_str = f"{date_part} {time_part.split()[0]}"
-            else:
-                route_time_str = f"{date_part} 00:00"
-        except Exception as e:
-            return [], 'network', f'解析失败: {e}'
-    else:
-        # 车号查询：检查前端传的 show_routes 参数
-        show_routes = request.args.get('show_routes', 'false').lower() == 'true'
-        if show_routes:
-            raw = fetch_rail_re('emu_number', keyword)
-            if raw and raw not in ('', '[]'):
-                try:
-                    data = json.loads(raw)
-                    if data:
-                        latest = data[0]
-                        realtime_emu_no = latest.get('emu_no', '').strip()
-                        if realtime_emu_no:
-                            realtime_prefix = realtime_emu_no[:5].upper()
-                            current_train_no = latest.get('train_no', '').strip()
-                            date_part = latest.get('date', '')
-                            time_part = latest.get('time', '')
-                            if time_part and ':' in time_part:
-                                route_time_str = f"{date_part} {time_part.split()[0]}"
-                            else:
-                                route_time_str = f"{date_part} 00:00"
-                except Exception:
-                    pass  # 忽略错误，继续本地查询
-
-    # Step 2: 提取后四位
-    last_four = extract_last_four_digits(keyword if search_type == 'trainNumber' else realtime_emu_no or keyword)
-    if not last_four:
-        return [], None, '车号格式错误'
-
-    # Step 3: 本地数据库查询
-    local_results = search_local_db(last_four)
-
-    # Step 4: 车型前缀过滤逻辑（根据查询类型区别对待）
-    if realtime_prefix and local_results:
-        matched = [r for r in local_results if (r['train_model_raw'] or '')[:5].upper() == realtime_prefix]
-        unmatched = [r for r in local_results if r not in matched]
-
-        if search_type == 'trainCode':
-            # 车次查询：强制只保留实时匹配的（准确性优先）
-            if matched:
-                local_results = matched
-                app.logger.info(f"【车次查询】强制过滤成功: 只保留实时车型 {realtime_prefix} 的 {len(matched)} 条记录")
-            else:
-                # 没匹配到也清空本地，强制走在线 fallback（保证显示的是今天实际运行的那辆）
-                local_results = []
-                app.logger.info(f"【车次查询】本地无实时匹配车型，强制 fallback 到在线查询")
-        else:
-            # 车号查询 + 开启交路：仅优先排序，不删除其他
-            if matched:
-                local_results = matched + unmatched
-                app.logger.info(f"【车号查询】实时车型匹配: 优先显示 {len(matched)} 条，补充显示 {len(unmatched)} 条")
-            # 如果没匹配到，就保持原顺序（不做任何改动）
-
-    # Step 5: 本地有结果 → 添加实时信息并返回
-    if local_results:
-        show_routes = request.args.get('show_routes', 'false').lower() == 'true'
-        input_length = len(keyword.strip())
-        if input_length > 9:
-            input_prefix = ''.join(c for c in keyword.upper() if c.isalpha())[:5]  # 提取输入的前5字母
-            local_results = [r for r in local_results if r['train_model_raw'][:5].upper() == input_prefix]
-
-        query_time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(query_time))
-        for r in local_results:
-            r['query_time'] = query_time_str
-
-            if show_routes:
-                # 分别为每辆车查询交路
-                full_emu_no = r['train_number_raw']
-                raw = fetch_rail_re('emu_number', full_emu_no)
-                if raw and raw not in ('', '[]'):
-                    try:
-                        data = json.loads(raw)
-                        if data:
-                            latest = data[0]
-                            r['current_train_no'] = latest.get('train_no', '').strip()
-                            date_part = latest.get('date', '')
-                            time_part = latest.get('time', '')
-                            if time_part and ':' in time_part:
-                                r['route_time'] = f"{date_part} {time_part.split()[0]}"
-                            else:
-                                r['route_time'] = f"{date_part} 00:00"
-                    except Exception:
-                        pass  # 忽略错误，继续下一辆
-                time.sleep(0.5)  # 礼貌延迟，避免频繁请求
-
-        local_results.sort(key=lambda x: 0 if x.get('current_train_no') else 1)
-
-        return local_results, 'local', None
-
-    # Step 6: 本地无结果或过滤后为空 → fallback 在线查询
-    if search_type == 'trainCode' or (search_type == 'trainNumber' and request.args.get('show_routes', 'false').lower() == 'true'):
-        raw = fetch_rail_re('emu_number', last_four)
-        if not raw or raw in ('', '[]'):
-            return [], 'network', '该车组无运行记录（或不在本地库中）'
-
-        try:
-            data = json.loads(raw)
-            if not data:
-                return [], 'network', '该车组暂无记录'
-            latest = data[0]
-            emu_no = latest.get('emu_no', '')
-            if not emu_no:
-                return [], 'network', '未获取到车组号'
-
-            raw_model = emu_no.split('-')[0] if '-' in emu_no else ''.join(c for c in emu_no if not c.isdigit())
-            normalized = normalize_train_model_for_icon(raw_model, last_four)
 
             date_part = latest.get('date', '')
             time_part = latest.get('time', '')
-            route_time_display = f"{date_part} {time_part.split()[0]}" if time_part and ':' in time_part else f"{date_part} 00:00"
-
-            result = {
-                'train_model_raw': raw_model,
-                'train_number_raw': emu_no,
-                'display_model': raw_model,
-                'train_model_normalized': normalized,
-                'model_icon_url': f'https://china-emu.cn/img/cute/{normalized}.png',
-                'bureau': '',
-                'depot': '',
-                'manufacturer': '',
-                'bureau_icon_url': BUREAU_ICONS_BASE64['air'],
-                'query_time': time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(query_time)),
-                'route_time': route_time_display,
-                'current_train_no': latest.get('train_no', '').strip()
-            }
-            return [result], 'network', None
+            route_time_str = (
+                f"{date_part} {time_part.split()[0]}"
+                if time_part and ':' in time_part
+                else f"{date_part} 00:00"
+            )
 
         except Exception as e:
-            return [], 'network', f'在线解析失败: {e}'
+            return [], 'network', f'解析失败: {e}'
 
-    return [], 'local', '本地无记录，且未启用在线交路查询'
+    # ==================================================
+    # Step 2: 提取后四位
+    # ==================================================
+    last_four = extract_last_four_digits(keyword if search_type == 'trainNumber' else realtime_emu_no)
+    if not last_four:
+        return [], None, '车号格式错误'
 
+    # ==================================================
+    # Step 3: 本地数据库查询
+    # ==================================================
+    local_results = search_local_db(last_four)
+
+    # ==================================================
+    # Step 4: 实时车型过滤（车次查询强制）
+    # ==================================================
+    if realtime_prefix and local_results:
+        matched = [
+            r for r in local_results
+            if (r['train_model_raw'] or '')[:5].upper() == realtime_prefix
+        ]
+
+        if search_type == 'trainCode':
+            local_results = matched
+
+    # ==================================================
+    # Step 5: 【新增】完整车号模式（>=9 位）强制车型过滤
+    # ==================================================
+    input_length = len(keyword.strip())
+    if search_type == 'trainNumber' and input_length >= 9 and local_results:
+        input_prefix = ''.join(c for c in keyword.upper() if c.isalpha())[:5]
+
+        local_results = [
+            r for r in local_results
+            if r['train_model_raw'][:5].upper() == input_prefix
+        ]
+
+        app.logger.info(
+            f"【完整车号模式】前缀 {input_prefix}，剩余 {len(local_results)} 条"
+        )
+    
+    # ==================================================
+    # Step 6: 本地有结果 → 用“车型 + 后四位”精确查交路
+    # ==================================================
+    if local_results:
+        show_routes = request.args.get('show_routes', 'false').lower() == 'true'
+        query_time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(query_time))
+    
+        for r in local_results:
+            r['query_time'] = query_time_str
+    
+            if not show_routes:
+                continue
+    
+            model = (r.get('train_model_raw') or '').upper()
+            number = extract_last_four_digits(r.get('train_number_raw'))
+    
+            if not model or not number:
+                continue
+    
+            # ✅ 关键修复：手动拼完整车号
+            full_emu_no = f"{model}{number}"
+            app.logger.info(f"[交路查询] 使用完整车号 {full_emu_no}")
+    
+            raw = fetch_rail_re('emu_number', full_emu_no)
+            if not raw or raw in ('', '[]'):
+                continue
+    
+            try:
+                data = json.loads(raw)
+                matched = next(
+                    (
+                        item for item in data
+                        if item.get('emu_no', '').upper() == full_emu_no
+                    ),
+                    None
+                )
+    
+                if not matched:
+                    continue
+    
+                r['current_train_no'] = matched.get('train_no', '').strip()
+                date_part = matched.get('date', '')
+                time_part = matched.get('time', '')
+                r['route_time'] = (
+                    f"{date_part} {time_part.split()[0]}"
+                    if time_part and ':' in time_part
+                    else f"{date_part} 00:00"
+                )
+    
+            except Exception as e:
+                app.logger.warning(f"[交路解析失败] {e}")
+    
+            time.sleep(0.3)
+    
+        return local_results, 'local', None
+        
 @app.route('/search_train')
 def search_train_route():
     start = time.time()

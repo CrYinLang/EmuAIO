@@ -141,7 +141,7 @@ function renderResults(data, container) {
                 ${remark ? `<p><strong>备注:</strong> ${remark}</p>` : ''}
                 ${queryTime ? `<p><strong>查询时间:</strong> ${queryTime}</p>` : ''}
                 ${routeTime ? `<p><strong>交路时间:</strong> ${routeTime}</p>` : ''}
-                ${currentTrainNo ? `<p><strong>本务车次:</strong> <span class="current-train-no">${currentTrainNo}</span></p>` : ''}
+                ${currentTrainNo ? `<p><strong>本务车次:</strong> <span class="current-train-no"><a href="https://rail.re/#${trainModel}${trainNumber}">${currentTrainNo}</a></span></p>` : ''}
             `;
 
             container.appendChild(itemDiv);
