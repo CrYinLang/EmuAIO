@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from flask import Flask, render_template, jsonify, request
 import sqlite3
 import requests
@@ -5,7 +6,6 @@ import json
 import time
 import re
 import os
-import logging
 
 requests.packages.urllib3.disable_warnings()
 
@@ -14,18 +14,14 @@ port = 5555
 cool_time = 3
 
 app = Flask(__name__, template_folder='assets', static_folder='assets')
+
 BUREAU_ICONS_BASE64 = {}
 
 def load_bureau_icons():
     global BUREAU_ICONS_BASE64
-    try:
-        with open('assets/icon.json', 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            BUREAU_ICONS_BASE64 = data.get('bureau_icons', {}) or {}
-    except Exception as e:
-        app.logger.warning(f"load_bureau_icons failed: {e}")
-        BUREAU_ICONS_BASE64 = {}
-    return True
+    with open('assets/icon.json', 'r', encoding='utf-8') as f:
+        data = json.load(f)
+        BUREAU_ICONS_BASE64 = data.get('bureau_icons', {})
 
 load_bureau_icons()
 
@@ -33,33 +29,39 @@ def map_multiple_keys(keys, value):
     return dict.fromkeys(keys, value)
 
 CRH6A_B_NUMBER_RANGES = [(656, 666), (675, 682)]
-CRH6A_C_NUMBER_LIST = ['0644','0645','0646','0647','0648','0652','0653','0654','0655']
+CRH6A_C_NUMBER_LIST = [
+    '0644', '0645', '0646', '0647', '0648',
+    '0652', '0653', '0654', '0655'
+]
 
 TRAIN_MODEL_NORMALIZATION_MAP = {
     'CR450AF': 'CR450AFs',
     'CR450BF': 'CR450BFs',
     **map_multiple_keys(['CR400AF-A', 'CR400AF-B'], 'CR400AF'),
-    **map_multiple_keys(['CR400AF-AE','CR400AF-S','CR400AF-AS','CR400AF-AZ','CR400AF-BS','CR400AF-BZ','CR400AF-Z','CR400AF-C'],'CR400AF-C'),
-    **map_multiple_keys(['CR400BF-A','CR400BF-B','CR400BF-C'],'CR400BF'),
-    **map_multiple_keys(['CR400BF-AS','CR400BF-BS','CR400BF-GS'],'CR400BF-S'),
-    **map_multiple_keys(['CR400BF-AZ','CR400BF-BZ','CR400BF-GZ'],'CR400BF-Z'),
-    **map_multiple_keys(['CRH380AL','CRH380AN'],'CRH380A'),
-    'CRH380BL':'CRH380B',
-    'CRH380CL':'CRH380C',
-    'CRH2B':'CRH2A',
-    'CRH1B':'CRH1A',
-    'CRH6A-A':'CRH6A',
-    'CRH6F':'CRH6F',
-    'CRH6F-A':'CRH6F-A',
-    'CRH3A-A':'CRH3A-A'
+    **map_multiple_keys(
+        ['CR400AF-AE', 'CR400AF-S', 'CR400AF-AS',
+         'CR400AF-AZ', 'CR400AF-BS', 'CR400AF-BZ', 'CR400AF-Z', 'CR400AF-C'],
+        'CR400AF-C'
+    ),
+    **map_multiple_keys(['CR400BF-A', 'CR400BF-B', 'CR400BF-C'], 'CR400BF'),
+    **map_multiple_keys(['CR400BF-AS', 'CR400BF-BS', 'CR400BF-GS'], 'CR400BF-S'),
+    **map_multiple_keys(['CR400BF-AZ', 'CR400BF-BZ', 'CR400BF-GZ'], 'CR400BF-Z'),
+    **map_multiple_keys(['CRH380AL', 'CRH380AN'], 'CRH380A'),
+    'CRH380BL': 'CRH380B',
+    'CRH380CL': 'CRH380C',
+    'CRH2B': 'CRH2A',
+    'CRH1B': 'CRH1A',
+    'CRH6A-A': 'CRH6A',
+    'CRH6F': 'CRH6F',
+    'CRH6F-A': 'CRH6F-A',
+    'CRH3A-A': 'CRH3A-A'
 }
 
 SPECIAL_MODEL_RULES = {
     'CR400BF-J': {'0001': 'CR400BF-J', '0003': 'CR400BF-J-0003'},
-    'CR400AF-J': {'0002': 'CR400AF-J', '0004': 'CR400AF-C', '0005': 'CR400AF-C'},
+    'CR400AF-J': {'0002': 'CR400AF-J', '0004': 'CR400AF-C', '0005': 'CR400AF-C', '2808': 'CR400AF-J'},
     'CR400BF-C': {'5162': 'CR400BF-C-5162'},
     'CR400BF-Z': {'0524': 'CR400BF-Z-0524'},
-    'CR400AF-J': {'2808': 'CR400AF-J'},
     'CRH380A': {'number_ranges': [(251, 259)], 'override_model': 'CRH380M'},
     'CRH6A-A': {
         'number_ranges': [(212, 216)],
@@ -73,7 +75,12 @@ SPECIAL_MODEL_RULES = {
 
 @app.route('/')
 def homepage():
-    return render_template('index.html', Bui='25.12.20.19.49', cool_time=cool_time, bureau_icons=BUREAU_ICONS_BASE64)
+    return render_template(
+        'index.html',
+        Bui='25.12.20.19.49',
+        cool_time=cool_time,
+        bureau_icons=BUREAU_ICONS_BASE64
+    )
 
 def extract_last_four_digits(text):
     if not text:
@@ -85,8 +92,8 @@ def normalize_train_model_for_icon(raw_model, raw_number):
     if not raw_model:
         return '未知'
     normalized = TRAIN_MODEL_NORMALIZATION_MAP.get(raw_model, raw_model.split('-')[0] if '-' in raw_model else raw_model)
-    rules = SPECIAL_MODEL_RULES.get(raw_model)
-    if rules:
+    if raw_model in SPECIAL_MODEL_RULES:
+        rules = SPECIAL_MODEL_RULES[raw_model]
         if 'number_ranges' in rules:
             try:
                 num_val = int(raw_number)
@@ -99,7 +106,7 @@ def normalize_train_model_for_icon(raw_model, raw_number):
             normalized = rules[raw_number]
     return normalized
 
-def search_local_db(last_four_digits):
+def search_local_db(last_four_digits: str):
     if not last_four_digits:
         return []
     try:
@@ -127,7 +134,7 @@ def search_local_db(last_four_digits):
             four_digits = extract_last_four_digits(full_number)
             normalized = normalize_train_model_for_icon(row['model'], four_digits)
             bureau_key = (row["bureau"] or "air").strip().replace(" ", "")
-            bureau_icon_url = BUREAU_ICONS_BASE64.get(bureau_key, '/assets/air.png')
+            bureau_icon_url = BUREAU_ICONS_BASE64.get(bureau_key, "")
             results.append({
                 'train_model_raw': row['model'] or '',
                 'train_number_raw': full_number,
@@ -141,14 +148,10 @@ def search_local_db(last_four_digits):
                 'bureau_icon_url': bureau_icon_url
             })
         return results
-    except sqlite3.Error as e:
-        app.logger.error(f"[SQLite Error] {e}")
-        return []
-    except Exception as e:
-        app.logger.error(f"[Local DB Error] {e}")
+    except Exception:
         return []
 
-def fetch_rail_re(query_type, keyword):
+def fetch_rail_re(query_type: str, keyword: str):
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
     }
@@ -173,15 +176,15 @@ def fetch_rail_re(query_type, keyword):
             resp.encoding = 'utf-8'
             return resp.text
         return None
-    except Exception as e:
-        app.logger.error(f"[rail.re Error] {e}")
+    except Exception:
         return None
 
-def search_train_vehicle(*, keyword, search_type, query_time):
+def search_train_vehicle(*, keyword: str, search_type: str, query_time: float):
     current_train_no = None
     route_time_str = None
     realtime_emu_no = None
     realtime_prefix = None
+
     if search_type == 'trainCode':
         raw = fetch_rail_re('train_code', keyword)
         if not raw or raw in ('', '[]'):
@@ -198,29 +201,34 @@ def search_train_vehicle(*, keyword, search_type, query_time):
             current_train_no = latest.get('train_no', '').strip()
             date_part = latest.get('date', '')
             time_part = latest.get('time', '')
-            route_time_str = (f"{date_part} {time_part.split()[0]}" if time_part and ':' in time_part else f"{date_part}")
+            route_time_str = f"{date_part} {time_part.split()[0]}" if time_part and ':' in time_part else f"{date_part}"
         except Exception as e:
             return [], 'network', f'解析失败: {e}'
+
     last_four = extract_last_four_digits(keyword if search_type == 'trainNumber' else realtime_emu_no)
     if not last_four:
         return [], None, '车号格式错误'
+
     local_results = search_local_db(last_four)
+
     if realtime_prefix and local_results:
-        matched = [r for r in local_results if (r.get('train_model_raw') or '')[:5].upper() == realtime_prefix]
+        matched = [r for r in local_results if (r['train_model_raw'] or '')[:5].upper() == realtime_prefix]
         if search_type == 'trainCode':
             local_results = matched
+
     input_length = len(keyword.strip())
     if search_type == 'trainNumber' and input_length >= 9:
         input_model = re.sub(r'[0-9-]+$', '', keyword).upper().strip('-')
         filtered_results = []
         for r in local_results:
-            db_model = (r.get('train_model_raw') or '').upper()
-            normalized_db_model = normalize_train_model_for_icon(db_model, extract_last_four_digits(r.get('train_number_raw')))
+            db_model = (r['train_model_raw'] or '').upper()
+            normalized_db_model = normalize_train_model_for_icon(db_model, extract_last_four_digits(r['train_number_raw']))
             normalized_input_model = normalize_train_model_for_icon(input_model, extract_last_four_digits(keyword))
             if normalized_db_model == normalized_input_model:
                 filtered_results.append(r)
         if filtered_results:
             local_results = filtered_results
+
     if local_results:
         show_routes = request.args.get('show_routes', 'false').lower() == 'true'
         query_time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(query_time))
@@ -259,19 +267,15 @@ def search_train_vehicle(*, keyword, search_type, query_time):
                     if current_train:
                         r['current_train_no'] = current_train
                     if time_part and ':' in time_part:
-                        time_components = time_part.split()
-                        valid_time = time_components[0] if time_components else '00:00'
+                        valid_time = time_part.split()[0]
                         r['route_time'] = f"{date_part} {valid_time}" if date_part else valid_time
                     elif date_part:
                         r['route_time'] = date_part
-                    else:
-                        r['route_time'] = '无时间信息'
-                else:
-                    pass
-            except Exception as e:
+            except Exception:
                 r['current_train_no'] = '解析失败'
                 r['route_time'] = '解析失败'
         return local_results, 'local', None
+
     return [], 'local', '未找到匹配的车组信息'
 
 @app.route('/search_train')
@@ -281,9 +285,21 @@ def search_train_route():
     search_type = request.args.get('type', 'trainNumber')
     if not keyword:
         return jsonify({'success': False, 'message': '请输入查询关键字'})
-    results, source, error = search_train_vehicle(keyword=keyword, search_type=search_type, query_time=start)
+    results, source, error = search_train_vehicle(
+        keyword=keyword,
+        search_type=search_type,
+        query_time=start
+    )
     duration = time.time() - start
-    return jsonify({'success': True, 'results': results, 'count': len(results), 'source': source, 'query_duration': f'{duration:.1f}s'})
+    if error:
+        return jsonify({'success': False, 'message': error})
+    return jsonify({
+        'success': True,
+        'results': results,
+        'count': len(results),
+        'source': source,
+        'query_duration': f'{duration:.1f}s'
+    })
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=port, debug=True)

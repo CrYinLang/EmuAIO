@@ -4,256 +4,465 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EmuAIO列车配属交路查询一页通</title>
-
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-    <link rel="icon" href="/assets/favicon.svg" sizes="any">
+    <link rel="icon" href="/assets/favicon.svg" sizes="any"> <!-- SVG 支持任意尺寸 -->
     <link rel="icon" href="/assets/favicon.ico">
-    <link rel="apple-touch-icon" href="/assets/favicon.ico">
-
+    <link rel="apple-touch-icon" href="/assets/favicon.ico"> <!-- 临时用 ico，也能用 -->
     <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
 </head>
-
 <body>
-<div class="main-content" data-query-interval="{{ cool_time }}">
+    <div class="main-content" data-cooldown="0" data-query-interval="{{ cool_time }}">
+        <h1>EmuAIO车配交查通</h1>
 
-    <h1>EmuAIO车配交查通</h1>
-
-    <!-- ================= 车次查询 ================= -->
-    <div class="content-section active" id="trainCodeSection">
-        <div class="search-container">
-            <input
-                type="text"
-                class="search-box"
-                id="searchInputTrainCode"
-                placeholder="输入车次（如 G1 / D2285）"
-                maxlength="15"
-            >
-            <button
-                class="search-btn"
-                id="searchBtnTrainCode"
-                disabled
-            >
-                查询
-            </button>
+        <!-- 车次查询区域 -->
+        <div class="content-section active" id="trainCodeSection">
+            <div class="search-container">
+                <input type="text" class="search-box" id="searchInputTrainCode" placeholder="输入车次" maxlength="15">
+                <button class="search-btn" id="searchBtnTrainCode" disabled>查询</button>
+            </div>
+            <div class="option-container">
+                <div class="hint-text">输入动车组车次查询相关信息</div>
+            </div>
+            <div class="result-container empty" id="resultContainerTrainCode"></div>
         </div>
 
-        <div class="option-container">
-            <div class="hint-text">
-                输入动车组车次，查询当前运行车组及配属信息
+        <!-- 关于页面区域 -->
+        <div class="content-section" id="aboutSection">
+            <div class="about-content">
+                <h2>关于EmuAIO列车查询系统</h2>
+                <p>这是一个集成了列车配属、交路查询等功能的综合性查询平台。</p>
+                <p>版本：{{ Bui }}</p>
+                <p>开发：Cr.YinLang</p>
+                <p>数据来源：Rail.re爬取公开数据</p>
+                <p>请勿频繁使用，避免被服务器封禁</p>
             </div>
-        </div>
-
-        <div
-            class="result-container empty"
-            id="resultContainerTrainCode"
-        ></div>
-    </div>
-
-    <!-- ================= 图鉴 ================= -->
-    <div class="content-section" id="gallerySection">
-        <div class="result-container">
-
-            <h2 style="text-align:center;margin-bottom:10px;">
-                动车组图鉴
-            </h2>
-
-            <p style="text-align:center;color:#b0b0b0;margin-bottom:20px;">
-                常见及代表性车型示例
-            </p>
-
-            <div class="result-item">
-                <h3>
-                    <img
-                        src="https://china-emu.cn/img/cute/CR450AFs.png"
-                        style="width:32px;height:32px;"
-                    >
-                    CR450AF-0201
-                </h3>
-                <p><strong>生产厂家:</strong> 中车青岛四方</p>
-                <p><strong>备注:</strong> 450km/h 级高速动车组</p>
-                <p><strong>状态:</strong> 试验中</p>
+            <br>
+            <div class="credits-container">
+                <div class="credits-title">
+                    友情链接&内容来源<br>以下内容点击可打开网站本站严禁进行商业活动
+                </div>
+                <div class="resource">
+                    <a href="https://v.douyin.com/7Q7JOpiCzCU/" target="_blank" class="credit-link">
+                        Cr.YinLang(<span class="credit-tiktok">抖音</span>):网页制作
+                    </a>
+                    <a href="http://rail.re/" target="_blank" class="credit-link">铁路信息查询:交路查询返回</a>
+                    <a href="https://emu.passearch.info/" target="_blank" class="credit-link">EmuSearch列车配属查询:信息查询</a>
+                    <a href="https://www.china-emu.cn/" target="_blank" class="credit-link">China-Emu列车大全:网页内列车图标</a>
+                </div>
             </div>
-
-            <div class="result-item">
-                <h3>
-                    <img
-                        src="https://china-emu.cn/img/cute/CR450BFs.png"
-                        style="width:32px;height:32px;"
-                    >
-                    CR450BF-0501
-                </h3>
-                <p><strong>生产厂家:</strong> 中车长春轨道客车</p>
-                <p><strong>备注:</strong> 450km/h 级高速动车组</p>
-                <p><strong>状态:</strong> 试验中</p>
-            </div>
-
-            <div class="result-item">
-                <h3>
-                    <img
-                        src="https://china-emu.cn/img/cute/CRH380AJ.png"
-                        style="width:32px;height:32px;"
-                    >
-                    CRH380AJ-0201
-                    <img
-                        src="{{ bureau_icons['广州铁路局'] | default('/assets/air.png') }}"
-                        style="width:32px;height:32px;margin-left:6px;"
-                    >
-                    <img
-                        src="{{ bureau_icons['国铁集团'] | default('/assets/air.png') }}"
-                        style="width:32px;height:32px;margin-left:6px;"
-                    >
-                </h3>
-                <p><strong>代管路局:</strong> 广州铁路局</p>
-                <p><strong>生产厂家:</strong> 中车青岛四方</p>
-                <p><strong>备注:</strong> 高速综合检测列车</p>
-                <p><strong>状态:</strong> 上线运行</p>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- ================= 关于 ================= -->
-    <div class="content-section" id="aboutSection">
-        <div class="about-content">
-            <h2>关于 EmuAIO</h2>
-
-            <p>
-                EmuAIO 是一个集成动车组配属、车号查询、实时交路查询的综合性工具。
-            </p>
-
-            <p>
-                本站数据来自公开渠道，仅供铁路爱好者学习与参考。
-            </p>
-
-            <p>
-                版本号：{{ Bui }}
-            </p>
-
-            <p>
-                开发者：Cr.YinLang
-            </p>
-
-            <p style="color:#ffb3b3;">
-                请勿高频查询，避免对上游接口造成压力。
-            </p>
-        </div>
-
-        <div class="credits-container">
             <div class="credits-title">
-                友情链接 / 数据来源
+                <p>如有疑问,请发送邮件到 iceiswpan@163.com</p>
             </div>
+        </div>
 
-            <div class="resource">
-                <a
-                    href="https://v.douyin.com/7Q7JOpiCzCU/"
-                    target="_blank"
-                    class="credit-link"
-                >
-                    Cr.YinLang（抖音）
-                </a>
-
-                <a
-                    href="https://rail.re/"
-                    target="_blank"
-                    class="credit-link"
-                >
-                    rail.re
-                </a>
-
-                <a
-                    href="https://emu.passearch.info/"
-                    target="_blank"
-                    class="credit-link"
-                >
-                    EmuSearch
-                </a>
-
-                <a
-                    href="https://www.china-emu.cn/"
-                    target="_blank"
-                    class="credit-link"
-                >
-                    China-Emu
-                </a>
+        <!-- 车号查询区域 -->
+        <div class="content-section" id="trainIdSection">
+            <div class="search-container">
+                <input type="text" class="search-box" id="searchInputTrainId" placeholder="输入车号" maxlength="15">
+                <button class="search-btn" id="searchBtnTrainId" disabled>查询</button>
             </div>
-
-            <div class="credits-title">
-                联系邮箱：iceiswpan@163.com
+            <div class="option-container">
+                <div id="routeOptionContainer">
+                    <label class="route-option">
+                        <input type="checkbox" id="showRoutes" title="关闭后查询速度能提升约750%">显示交路
+                    </label>
+                </div>
+                <div class="hint-text" id="hintText">输入动车组车号查询相关信息</div>
+            </div>
+            <div class="result-container empty" id="resultContainer"></div>
+        </div>
+        
+        <!-- 图鉴页面区域 -->
+        <div class="content-section" id="gallerySection">
+            <div class="result-container">
+            
+                <h2 style="text-align:center;margin-bottom:10px;">动车组图鉴 共25款</h2><br>
+                <h3 style="text-align:center;margin-bottom:10px;">热门车型 共3款</h3><br>
+                
+                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CR450AFs.png" style="width:32px;height:32px;">
+                        CR450AF-0201
+                    </h3>
+                    <p><strong>生产厂家:</strong> 中车青岛四方</p>
+                    <p><strong>备注:</strong> 450级别动车组</p>
+                    <p><strong>类型:</strong> 实验-实验中</p>
+                </div>
+                                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CR450BFs.png" style="width:32px;height:32px;">
+                        CR450BF-0501
+                    </h3>
+                    <p><strong>生产厂家:</strong> 长春轨道客车</p>
+                    <p><strong>备注:</strong> 450级别动车组</p>
+                    <p><strong>类型:</strong> 实验-实验中</p>
+                </div>
+                
+                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CRH380AJ.png" style="width:32px;height:32px;">
+                        CRH380AJ-0201
+                        <img src="{{ bureau_icons['广州铁路局'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                        <img src="{{ bureau_icons['国铁集团'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                    </h3>
+                    <p><strong>代管路局:</strong> 广州铁路局</p>
+                    <p><strong>生产厂家:</strong> 南车青岛四方</p>
+                    <p><strong>备注:</strong> 5级修出厂的和谐号380级别高速综合检测列车</p>
+                    <p><strong>类型:</strong> 检测-上线</p>
+                </div>
+                
+                <br>
+                
+                <h3 style="text-align:center;margin-bottom:10px;">高速综合检测列车 共14款</h3><br>
+                <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 30px; border: 1px dashed #ccc;"><h4>复兴号高速综合检测车</h4></div>
+                <!-- 卡片 1 -->
+                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CR400BF-J.png" style="width:32px;height:32px;">
+                        CR400BF-J-0001
+                        <img src="{{ bureau_icons['沈阳铁路局'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                        <img src="{{ bureau_icons['铁科院'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                    </h3>
+                    <p><strong>代管路局:</strong> 沈阳铁路局</p>
+                    <p><strong>生产厂家:</strong> 长春轨道客车</p>
+                    <p><strong>备注:</strong> 复兴号350级别高速综合检测列车</p>
+                    <p><strong>类型:</strong> 检测-上线</p>
+                </div>
+        
+                <!-- 卡片 2 -->
+                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CR400AF-J.png" style="width:32px;height:32px;">
+                        CR400AF-J-0002
+                        <img src="{{ bureau_icons['武汉铁路局'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                        <img src="{{ bureau_icons['铁科院'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                    </h3>
+                    <p><strong>代管路局:</strong> 武汉铁路局</p>
+                    <p><strong>生产厂家:</strong> 中车青岛四方</p>
+                    <p><strong>备注:</strong> 复兴号350级别高速综合检测列车</p>
+                    <p><strong>类型:</strong> 检测-上线</p>
+                </div>
+        
+                <!-- 卡片 3 -->
+                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CR400BF-J-0003.png" style="width:32px;height:32px;">
+                        CR400BF-J-0003
+                        <img src="{{ bureau_icons['北京铁路局'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                        <img src="{{ bureau_icons['铁科院'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                    </h3>
+                    <p><strong>代管路局:</strong> 北京铁路局</p>
+                    <p><strong>生产厂家:</strong> 长春轨道客车</p>
+                    <p><strong>备注:</strong> 复兴号350级别高速综合检测列车</p>
+                    <p><strong>类型:</strong> 检测-上线</p>
+                </div>
+                
+                <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 30px; border: 1px dashed #ccc;"><h4>和谐号检测车</h4></div>
+                
+                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CRH380AJ.png" style="width:32px;height:32px;">
+                        CRH380AJ-0201
+                        <img src="{{ bureau_icons['广州铁路局'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                        <img src="{{ bureau_icons['国铁集团'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                    </h3>
+                    <p><strong>代管路局:</strong> 广州铁路局</p>
+                    <p><strong>生产厂家:</strong> 南车青岛四方</p>
+                    <p><strong>备注:</strong> 和谐号380级别高速综合检测列车</p>
+                    <p><strong>类型:</strong> 检测-上线</p>
+                </div>
+                
+                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CRH380AJ.png" style="width:32px;height:32px;">
+                        CRH380AJ-0202
+                        <img src="{{ bureau_icons['武汉铁路局'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                        <img src="{{ bureau_icons['国铁集团'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                    </h3>
+                    <p><strong>代管路局:</strong> 武汉铁路局</p>
+                    <p><strong>生产厂家:</strong> 南车青岛四方</p>
+                    <p><strong>备注:</strong> 和谐号380级别高速综合检测列车</p>
+                    <p><strong>类型:</strong> 检测-上线</p>
+                </div>
+                
+                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CRH380AJ.png" style="width:32px;height:32px;">
+                        CRH380AJ-0203
+                        <img src="{{ bureau_icons['武汉铁路局'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                        <img src="{{ bureau_icons['国铁集团'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                    </h3>
+                    <p><strong>代管路局:</strong> 武汉铁路局</p>
+                    <p><strong>生产厂家:</strong> 南车青岛四方</p>
+                    <p><strong>备注:</strong> 和谐号380级别高速综合检测列车</p>
+                    <p><strong>类型:</strong> 检测-上线</p>
+                </div>
+                
+                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CRH380AM.png" style="width:32px;height:32px;">
+                        CRH380AM-0204
+                        <img src="{{ bureau_icons['济南铁路局'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                        <img src="{{ bureau_icons['国铁集团'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                    </h3>
+                    <p><strong>代管路局:</strong> 济南铁路局</p>
+                    <p><strong>生产厂家:</strong> 南车青岛四方</p>
+                    <p><strong>备注:</strong> 和谐号更高速度综合检测列车</p>
+                    <p><strong>类型:</strong> 检测-上线</p>
+                </div>
+                
+                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CRH2J.png" style="width:32px;height:32px;">
+                        CRH2J-0205
+                        <img src="{{ bureau_icons['广州铁路局'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                        <img src="{{ bureau_icons['铁科院'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                    </h3>
+                    <p><strong>代管路局:</strong> 广州铁路局</p>
+                    <p><strong>生产厂家:</strong> 南车青岛四方</p>
+                    <p><strong>备注:</strong> 和谐号250级别高速综合检测列车</p>
+                    <p><strong>类型:</strong> 检测-动态验收中</p>
+                </div>
+                
+                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CRH380BJ.png" style="width:32px;height:32px;">
+                        CRH380BJ-0301
+                        <img src="{{ bureau_icons['北京铁路局'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                        <img src="{{ bureau_icons['国铁集团'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                    </h3>
+                    <p><strong>代管路局:</strong> 北京铁路局</p>
+                    <p><strong>生产厂家:</strong> 唐山轨道客车</p>
+                    <p><strong>备注:</strong> 和谐号350级别高速综合检测列车</p>
+                    <p><strong>类型:</strong> 检测-上线</p>
+                </div>
+                
+                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CRH2C.png" style="width:32px;height:32px;">
+                        CRH2C-2061
+                        <img src="{{ bureau_icons['上海铁路局'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                        <img src="{{ bureau_icons['国铁集团'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                    </h3>
+                    <p><strong>代管路局:</strong> 上海铁路局</p>
+                    <p><strong>生产厂家:</strong> 南车青岛四方</p>
+                    <p><strong>备注:</strong> 和谐号350级别综合检测列车</p>
+                    <p><strong>类型:</strong> 检测-上线</p>
+                </div>
+                
+                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CRH5J.png" style="width:32px;height:32px;">
+                        CRH5J-0501
+                        <img src="{{ bureau_icons['北京铁路局'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                        <img src="{{ bureau_icons['国铁集团'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                    </h3>
+                    <p><strong>代管路局:</strong> 北京铁路局</p>
+                    <p><strong>生产厂家:</strong> 长春轨道客车</p>
+                    <p><strong>备注:</strong> 和谐号250级别 0号高速综合检测列车</p>
+                    <p><strong>类型:</strong> 检测-上线</p>
+                </div>
+                
+                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CRH380BJ-A.png" style="width:32px;height:32px;">
+                        CRH380BJ-A-0504
+                        <img src="{{ bureau_icons['沈阳铁路局'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                        <img src="{{ bureau_icons['国铁集团'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                    </h3>
+                    <p><strong>代管路局:</strong> 沈阳铁路局</p>
+                    <p><strong>生产厂家:</strong> 长春轨道客车</p>
+                    <p><strong>备注:</strong> 和谐号350级别高速综合检测列车，CRH380CL头型</p>
+                    <p><strong>类型:</strong> 检测-上线</p>
+                </div>
+                
+                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CRH2C.png" style="width:32px;height:32px;">
+                        CRH2C-2068
+                        <img src="{{ bureau_icons['上海铁路局'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                        <img src="{{ bureau_icons['国铁集团'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                    </h3>
+                    <p><strong>代管路局:</strong> 上海铁路局</p>
+                    <p><strong>生产厂家:</strong> 南车青岛四方</p>
+                    <p><strong>备注:</strong> 和谐号380级别综合检测列车</p>
+                    <p><strong>类型:</strong> 检测-上线</p>
+                </div>
+                
+                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CRH380A.png" style="width:32px;height:32px;">
+                        CRH2C-2150
+                        <img src="{{ bureau_icons['上海铁路局'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                        <img src="{{ bureau_icons['国铁集团'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                    </h3>
+                    <p><strong>代管路局:</strong> 上海铁路局</p>
+                    <p><strong>生产厂家:</strong> 南车青岛四方</p>
+                    <p><strong>备注:</strong> 和谐号350级别高速综合检测列车，CRH380A新头型实验列车</p>
+                    <p><strong>类型:</strong> 检测-上线</p>
+                </div>
+                
+                <br><h3 style="text-align:center;margin-bottom:10px;">其他 共8款</h3><br>
+        
+                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CRH380A.png" style="width:32px;height:32px;">
+                        CRH380AN-0206
+                        <img src="{{ bureau_icons['成都铁路局'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                    </h3>
+                    <p><strong>配属路局:</strong> 成都铁路局</p>
+                    <p><strong>配属动车所:</strong> 成都东</p>
+                    <p><strong>生产厂家:</strong> 南车青岛四方</p>
+                    <p><strong>备注:</strong> 永磁电机实验动车组</p>
+                    <p><strong>类型:</strong> 客运-上线</p>
+                    <p><strong>交路:</strong> 点击查询</p>
+                </div>
+                
+                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CR400AF.png" style="width:32px;height:32px;">
+                        CR400AF-0207
+                        <img src="{{ bureau_icons['北京铁路局'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                    </h3>
+                    <p><strong>配属路局:</strong> 北京铁路局</p>
+                    <p><strong>配属动车所:</strong> 北京西</p>
+                    <p><strong>生产厂家:</strong> 南车青岛四方</p>
+                    <p><strong>备注:</strong> 350km/h中国标准动车组样车</p>
+                    <p><strong>类型:</strong> 客运-上线</p>
+                    <p><strong>交路:</strong> 点击查询</p>
+                </div>
+                
+                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CR400BF.png" style="width:32px;height:32px;">
+                        CR400BF-0507
+                        <img src="{{ bureau_icons['广州铁路局'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                    </h3>
+                    <p><strong>配属路局:</strong> 广州铁路局</p>
+                    <p><strong>配属动车所:</strong> 广州南</p>
+                    <p><strong>生产厂家:</strong> 长春轨道客车</p>
+                    <p><strong>备注:</strong> 350km/h中国标准动车组样车，白眉，橡胶风挡</p>
+                    <p><strong>类型:</strong> 客运-上线</p>
+                    <p><strong>交路:</strong> 点击查询</p>
+                </div>
+                
+                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CR400AF-C.png" style="width:32px;height:32px;">
+                        CR400AF-C-2214
+                        <img src="{{ bureau_icons['北京铁路局'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                    </h3>
+                    <p><strong>配属路局:</strong> 北京铁路局</p>
+                    <p><strong>配属动车所:</strong> 雄安</p>
+                    <p><strong>生产厂家:</strong> 南车青岛四方</p>
+                    <p><strong>备注:</strong> 真正意义上的智能动车，具有自动驾驶功能，仅一列</p>
+                    <p><strong>类型:</strong> 客运-上线</p>
+                    <p><strong>交路:</strong> 点击查询</p>
+                </div>
+                
+                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CRH2G.png" style="width:32px;height:32px;">
+                        CRH2A-2460
+                        <img src="{{ bureau_icons['昆明铁路局'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                    </h3>
+                    <p><strong>配属路局:</strong> 昆明铁路局</p>
+                    <p><strong>配属动车所:</strong> 昆明南</p>
+                    <p><strong>生产厂家:</strong> 南车青岛四方</p>
+                    <p><strong>备注:</strong> CRH2G新头型实验动车组</p>
+                    <p><strong>类型:</strong> 客运-上线</p>
+                    <p><strong>交路:</strong> 点击查询</p>
+                </div>
+                
+                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CRH2A.png" style="width:32px;height:32px;">
+                        CRH2A-4020
+                        <img src="{{ bureau_icons['成都铁路局'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                    </h3>
+                    <p><strong>配属路局:</strong> 成都铁路局</p>
+                    <p><strong>配属动车所:</strong> 成都东</p>
+                    <p><strong>生产厂家:</strong> 南车青岛四方</p>
+                    <p><strong>备注:</strong> 2022年6月4日发生事故，头车及7车出轨受损，现已改造为货运动车组。前两节车厢无窗户</p>
+                    <p><strong>类型:</strong> 货运-上线</p>
+                </div>
+                
+                <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 30px; border: 1px dashed #ccc;"><h4>仅2列的特殊涂装</h4></div>
+                
+                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CR400BF-C-5162.png" style="width:32px;height:32px;">
+                        CR400BF-C-5162
+                        <img src="{{ bureau_icons['北京铁路局'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                    </h3>
+                    <p><strong>配属路局:</strong> 北京铁路局</p>
+                    <p><strong>配属动车所:</strong> 北京北</p>
+                    <p><strong>生产厂家:</strong> 长春轨道客车</p>
+                    <p><strong>备注:</strong> 冬奥涂装</p>
+                    <p><strong>类型:</strong> 客运-上线</p>
+                    <p><strong>交路:</strong> 点击查询</p>
+                </div>
+                
+                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CR400BF-Z-0524.png" style="width:32px;height:32px;">
+                        CR400BF-Z-0524
+                        <img src="{{ bureau_icons['上海铁路局'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                    </h3>
+                    <p><strong>配属路局:</strong> 上海铁路局</p>
+                    <p><strong>配属动车所:</strong> 杭州西</p>
+                    <p><strong>生产厂家:</strong> 长春轨道客车</p>
+                    <p><strong>备注:</strong> 杭州亚运涂装</p>
+                    <p><strong>类型:</strong> 客运-上线</p>
+                    <p><strong>交路:</strong> 点击查询</p>
+                </div>
+                
+                <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 30px; border: 1px dashed #ccc;"><h4>综合检测车</h4></div>
+                
+                <div class="result-item">
+                    <h3>
+                        <img src="https://china-emu.cn/img/cute/CR200J-J.png" style="width:32px;height:32px;">
+                        CR200J3-C-9101
+                        <img src="{{ bureau_icons['国能'] | default('/assets/air.png') }}" style="width:32px;height:32px;">
+                    </h3>
+                    <p><strong>配属路局:</strong> 国家能源集团朔黄铁路</p>
+                    <p><strong>生产厂家:</strong> 唐山轨道客车</p>
+                    <p><strong>备注:</strong> 动力车由中车大连机车车辆厂制造，因列车电路烧毁，现已回厂维修 </p>
+                    <p><strong>类型:</strong> 检测-维修</p>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- ================= 车号查询 ================= -->
-    <div class="content-section" id="trainIdSection">
-        <div class="search-container">
-            <input
-                type="text"
-                class="search-box"
-                id="searchInputTrainId"
-                placeholder="输入车号（如 CR400AF-2213）"
-                maxlength="15"
-            >
-            <button
-                class="search-btn"
-                id="searchBtnTrainId"
-                disabled
-            >
-                查询
-            </button>
+    <!-- 底部标签栏 -->
+    <div class="tab-bar">
+        <div class="tab-item active" data-tab="trainCode">
+            <svg viewBox="0 0 24 24">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+            </svg>
+            车次
         </div>
-
-        <div class="option-container">
-            <label class="route-option">
-                <input type="checkbox" id="showRoutes">
-                显示交路（开启后查询较慢）
-            </label>
-
-            <div class="hint-text">
-                输入完整或后四位车号查询配属信息
-            </div>
+        <div class="tab-item" data-tab="gallery">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 3l2.5 5 5.5.8-4 3.9.9 5.5L12 15.8 7.1 18.2l.9-5.5-4-3.9 5.5-.8L12 3z"/>
+            </svg>
+            图鉴
         </div>
-
-        <div
-            class="result-container empty"
-            id="resultContainer"
-        ></div>
+        <div class="tab-item" data-tab="about">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+            </svg>
+            关于
+        </div>
+        <div class="tab-item" data-tab="trainId">
+            <svg viewBox="0 0 24 24">
+                <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zM18 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+            </svg>
+            车号
+        </div>
     </div>
 
-</div>
-
-<!-- ================= 底部 Tab ================= -->
-<div class="tab-bar">
-
-    <div class="tab-item active" data-tab="trainCode">
-        <svg viewBox="0 0 24 24">
-            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
-        </svg>
-        车次
-    </div>
-
-    <div class="tab-item" data-tab="gallery">
-        <svg viewBox="0 0 24 24">
-            <path d="M12 3l2.5 5 5.5.8-4 3.9.9 5.5L12 15.8 7.1 18.2l.9-5.5-4-3.9 5.5-.8z"/>
-        </svg>
-        图鉴
-    </div>
-
-    <div class="tab-item" data-tab="about">
-        <svg viewBox="0 0 24 24">
-            <path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/>
-        </svg>
-        关于
-    </div>
-
-    <div class="tab-item" data-tab="trainId">
-        <svg viewBox="0 0 24 24">
-            <path d="M20 8h-3V4H3a2 2 0 00-2 2v11h2a3 3 0 006 0h6a3 3 0 006 0h2v-5z"/>
-        </svg>
-        车号
-    </div>
-
-</div>
-
-<script src="{{ url_for('static', filename='main.js') }}"></script>
+    <!-- JS -->
+    <script src="{{ url_for('static', filename='main.js') }}"></script>
 </body>
 </html>
