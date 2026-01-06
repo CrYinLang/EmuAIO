@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmuAIO列车配属交路查询一页通</title>
+
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/assets/favicon.svg" sizes="any">
+    <link rel="icon" href="/assets/favicon.ico">
+    <link rel="apple-touch-icon" href="/assets/favicon.ico">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+</head>
+
+<body>
+<div class="main-content" data-query-interval="{{ cool_time }}">
+
+    <h1>EmuAIO车配交查通</h1>
+
+    <!-- ================= 车次查询 ================= -->
+    <div class="content-section active" id="trainCodeSection">
+        <div class="search-container">
+            <input
+                type="text"
+                class="search-box"
+                id="searchInputTrainCode"
+                placeholder="输入车次（如 G1 / D2285）"
+                maxlength="15"
+            >
+            <button
+                class="search-btn"
+                id="searchBtnTrainCode"
+                disabled
+            >
+                查询
+            </button>
+        </div>
+
+        <div class="option-container">
+            <div class="hint-text">
+                输入动车组车次，查询当前运行车组及配属信息
+            </div>
+        </div>
+
+        <div
+            class="result-container empty"
+            id="resultContainerTrainCode"
+        ></div>
+    </div>
+
+    <!-- ================= 图鉴 ================= -->
+    <div class="content-section" id="gallerySection">
+        <div class="result-container">
+
+            <h2 style="text-align:center;margin-bottom:10px;">
+                动车组图鉴
+            </h2>
+
+            <p style="text-align:center;color:#b0b0b0;margin-bottom:20px;">
+                常见及代表性车型示例
+            </p>
+
+            <div class="result-item">
+                <h3>
+                    <img
+                        src="https://china-emu.cn/img/cute/CR450AFs.png"
+                        style="width:32px;height:32px;"
+                    >
+                    CR450AF-0201
+                </h3>
+                <p><strong>生产厂家:</strong> 中车青岛四方</p>
+                <p><strong>备注:</strong> 450km/h 级高速动车组</p>
+                <p><strong>状态:</strong> 试验中</p>
+            </div>
+
+            <div class="result-item">
+                <h3>
+                    <img
+                        src="https://china-emu.cn/img/cute/CR450BFs.png"
+                        style="width:32px;height:32px;"
+                    >
+                    CR450BF-0501
+                </h3>
+                <p><strong>生产厂家:</strong> 中车长春轨道客车</p>
+                <p><strong>备注:</strong> 450km/h 级高速动车组</p>
+                <p><strong>状态:</strong> 试验中</p>
+            </div>
+
+            <div class="result-item">
+                <h3>
+                    <img
+                        src="https://china-emu.cn/img/cute/CRH380AJ.png"
+                        style="width:32px;height:32px;"
+                    >
+                    CRH380AJ-0201
+                    <img
+                        src="{{ bureau_icons['广州铁路局'] | default('/assets/air.png') }}"
+                        style="width:32px;height:32px;margin-left:6px;"
+                    >
+                    <img
+                        src="{{ bureau_icons['国铁集团'] | default('/assets/air.png') }}"
+                        style="width:32px;height:32px;margin-left:6px;"
+                    >
+                </h3>
+                <p><strong>代管路局:</strong> 广州铁路局</p>
+                <p><strong>生产厂家:</strong> 中车青岛四方</p>
+                <p><strong>备注:</strong> 高速综合检测列车</p>
+                <p><strong>状态:</strong> 上线运行</p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ================= 关于 ================= -->
+    <div class="content-section" id="aboutSection">
+        <div class="about-content">
+            <h2>关于 EmuAIO</h2>
+
+            <p>
+                EmuAIO 是一个集成动车组配属、车号查询、实时交路查询的综合性工具。
+            </p>
+
+            <p>
+                本站数据来自公开渠道，仅供铁路爱好者学习与参考。
+            </p>
+
+            <p>
+                版本号：{{ Bui }}
+            </p>
+
+            <p>
+                开发者：Cr.YinLang
+            </p>
+
+            <p style="color:#ffb3b3;">
+                请勿高频查询，避免对上游接口造成压力。
+            </p>
+        </div>
+
+        <div class="credits-container">
+            <div class="credits-title">
+                友情链接 / 数据来源
+            </div>
+
+            <div class="resource">
+                <a
+                    href="https://v.douyin.com/7Q7JOpiCzCU/"
+                    target="_blank"
+                    class="credit-link"
+                >
+                    Cr.YinLang（抖音）
+                </a>
+
+                <a
+                    href="https://rail.re/"
+                    target="_blank"
+                    class="credit-link"
+                >
+                    rail.re
+                </a>
+
+                <a
+                    href="https://emu.passearch.info/"
+                    target="_blank"
+                    class="credit-link"
+                >
+                    EmuSearch
+                </a>
+
+                <a
+                    href="https://www.china-emu.cn/"
+                    target="_blank"
+                    class="credit-link"
+                >
+                    China-Emu
+                </a>
+            </div>
+
+            <div class="credits-title">
+                联系邮箱：iceiswpan@163.com
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 车号查询 ================= -->
+    <div class="content-section" id="trainIdSection">
+        <div class="search-container">
+            <input
+                type="text"
+                class="search-box"
+                id="searchInputTrainId"
+                placeholder="输入车号（如 CR400AF-2213）"
+                maxlength="15"
+            >
+            <button
+                class="search-btn"
+                id="searchBtnTrainId"
+                disabled
+            >
+                查询
+            </button>
+        </div>
+
+        <div class="option-container">
+            <label class="route-option">
+                <input type="checkbox" id="showRoutes">
+                显示交路（开启后查询较慢）
+            </label>
+
+            <div class="hint-text">
+                输入完整或后四位车号查询配属信息
+            </div>
+        </div>
+
+        <div
+            class="result-container empty"
+            id="resultContainer"
+        ></div>
+    </div>
+
+</div>
+
+<!-- ================= 底部 Tab ================= -->
+<div class="tab-bar">
+
+    <div class="tab-item active" data-tab="trainCode">
+        <svg viewBox="0 0 24 24">
+            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+        </svg>
+        车次
+    </div>
+
+    <div class="tab-item" data-tab="gallery">
+        <svg viewBox="0 0 24 24">
+            <path d="M12 3l2.5 5 5.5.8-4 3.9.9 5.5L12 15.8 7.1 18.2l.9-5.5-4-3.9 5.5-.8z"/>
+        </svg>
+        图鉴
+    </div>
+
+    <div class="tab-item" data-tab="about">
+        <svg viewBox="0 0 24 24">
+            <path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/>
+        </svg>
+        关于
+    </div>
+
+    <div class="tab-item" data-tab="trainId">
+        <svg viewBox="0 0 24 24">
+            <path d="M20 8h-3V4H3a2 2 0 00-2 2v11h2a3 3 0 006 0h6a3 3 0 006 0h2v-5z"/>
+        </svg>
+        车号
+    </div>
+
+</div>
+
+<script src="{{ url_for('static', filename='main.js') }}"></script>
+</body>
+</html>
