@@ -1,6 +1,6 @@
 {
-  "LastUpdate": "26-01-23-18-05",
-  "Version": "2.1.0.5",
-  "Build": "2105",
+  "LastUpdate": "26-01-24-13-39",
+  "Version": "2.1.1.0",
+  "Build": "2110",
   "download": "https://github.com/CrYinLang/EmuAIO/releases/download/Release/app-release.apk"
 }
