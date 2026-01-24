@@ -1,7 +1,7 @@
 {
   "LastUpdate": "26-01-24-13-39",
-  "Version": "2.1.1.0",
+  "Version": "2.1.1.1",
   "Build": "2111",
   "download": "https://github.com/CrYinLang/EmuAIO/releases/download/Release/app-release.apk",
-  "download1": "https://github.com/CrYinLang/EmuAIO/releases/download/Release/app-release.apk"
+  "download1": "https://github.com/CrYinLang/EmuAIO/releases/download/Release/app-releas123e.apk"
 }
