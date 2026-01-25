@@ -26,7 +26,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<Map<String, dynamic>?> _checkForUpdate() async {
     try {
       final response = await http.get(Uri.parse(
-          'https://raw.githubusercontent.com/CrYinLang/EmuAIO/refs/heads/main/version.txt'
+          'https://gh-proxy.com/https://raw.githubusercontent.com/CrYinLang/EmuAIO/refs/heads/main/version.txt'
       )).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {

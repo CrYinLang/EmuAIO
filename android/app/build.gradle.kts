@@ -26,8 +26,8 @@ android {
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        versionCode = 2112
-        versionName = "2.1.1.2"  // 修复：添加引号
+        versionCode = 2113
+        versionName = "2.1.1.3"  // 修复：添加引号
     }
 
     buildTypes {
