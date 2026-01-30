@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:archive/archive.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
 import 'dart:io';
 
 import 'main.dart';
@@ -99,14 +98,6 @@ class _SettingsPageState extends State<SettingsPage> {
         }
 
         final lowerName = filename.toLowerCase();
-
-        // ===================
-        // Zip Slip 安全防护
-        // ===================
-        final normalizedPath = p.normalize('$iconPackDir/$filename');
-        if (!normalizedPath.startsWith(iconPackDir)) {
-          throw Exception('检测到非法ZIP路径: $filename');
-        }
 
         // manifest.json
         if (lowerName == 'manifest.json') {
@@ -1432,6 +1423,85 @@ class _SettingsPageState extends State<SettingsPage> {
                 onTap: isLoadingIconPack ? null : _showIconPackManagement,
               ),
             ],
+          ),
+
+          const SizedBox(height: 16),
+          Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Opacity(
+              opacity: 0.6, // 降低整体透明度
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ListTile(
+                    leading: Icon(
+                      Icons.storage,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                    ),
+                    title: DefaultTextStyle.merge(
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                      child: const Text('数据源设置'),
+                    ),
+                  ),
+                  ListTile(
+                    leading: Icon(
+                      Icons.cloud_upload,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                    ),
+                    title: Text(
+                      'Rail.re',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                    ),
+                    trailing: Icon(
+                      Icons.check_circle,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 20,
+                    ),
+                    onTap: null, // 禁用点击
+                  ),
+                  ListTile(
+                    leading: Icon(
+                      Icons.train,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                    ),
+                    title: Text(
+                      '12306',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    subtitle: const Text(
+                      '即将推出',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    trailing: Icon(
+                      Icons.lock,
+                      color: Colors.grey[500],
+                      size: 18,
+                    ),
+                    onTap: null, // 禁用点击
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Text(
+                      '数据源切换功能正在开发中',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
 
           const SizedBox(height: 16),

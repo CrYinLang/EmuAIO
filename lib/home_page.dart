@@ -342,6 +342,7 @@ class _HomePageState extends State<HomePage> {
         }
 
         final fullCode = prefix + input;
+
         final resp = await http.get(
           Uri.parse('https://api.rail.re/train/${fullCode.toUpperCase()}'),
           headers: headers,
@@ -353,9 +354,12 @@ class _HomePageState extends State<HomePage> {
           return;
         }
 
-        for (var item in data) {
+        // 1. 过滤掉CR200J
+        final List<dynamic> filteredData = [];
+        for (var i = 0; i < data.length; i++) {
+          final item = data[i];
           final emuNo = item['emu_no']?.toString().trim() ?? '';
-          final emuDate = item['date']?.toString().trim() ?? '';
+
           if (emuNo.contains('CR200')) {
             setState(() {
               isLoading = false;
@@ -363,21 +367,61 @@ class _HomePageState extends State<HomePage> {
             });
             return;
           }
-          final emuDateOnly = DateTime.parse(emuDate.split(' ')[0]);
-          final now = DateTime.now();
-          final currentDateOnly = DateTime(now.year, now.month, now.day);
+          filteredData.add(item);
+        }
 
-          if (emuDateOnly.difference(currentDateOnly).inDays.abs() > 1) {
-            setState(() {
-              isLoading = false;
-              errorMsg = '车次过期!未找到可能的结果:\n1.可能为调图后删除此车次\n2.上游API找不到交路';
-            });
-            return;
+        if (filteredData.isEmpty) {
+          setState(() => errorMsg = '没有可用的动车组数据');
+          return;
+        }
+
+        // 2. 找到最新的记录日期
+        DateTime? latestDate;
+        for (var item in filteredData) {
+          final emuDate = item['date']?.toString().trim() ?? '';
+          if (emuDate.isEmpty) continue;
+
+          DateTime? emuDateOnly;
+          if (emuDate.contains(' ')) {
+            final datePart = emuDate.split(' ')[0];
+            emuDateOnly = DateTime.parse(datePart);
+          } else {
+            emuDateOnly = DateTime.parse(emuDate);
+          }
+
+          if (latestDate == null || emuDateOnly.isAfter(latestDate)) {
+            latestDate = emuDateOnly;
           }
         }
 
-        final first = data[0];
-        final second = data.length > 1 ? data[1] : null;
+        if (latestDate == null) {
+          setState(() {
+            isLoading = false;
+            errorMsg = '无法解析车次日期';
+          });
+          return;
+        }
+
+        // 3. 检查最新日期是否在2天内
+        final now = DateTime.now();
+        final currentDateOnly = DateTime(now.year, now.month, now.day);
+        final latestDateAtMidnight = DateTime(latestDate.year, latestDate.month, latestDate.day);
+
+        final difference = latestDateAtMidnight.difference(currentDateOnly);
+        final absDays = difference.inDays.abs();
+
+        if (absDays > 2) {
+          setState(() {
+            isLoading = false;
+            final relation = difference.inDays > 0 ? '未来' : '过去';
+            errorMsg = '车次过期! 可能调图后删除列车\n或者上游API无数据!\n可切换第二数据源尝试';
+          });
+          return;
+        }
+
+        // 4. 重联判断（使用原始过滤后的数据）
+        final first = filteredData[0];
+        final second = filteredData.length > 1 ? filteredData[1] : null;
 
         final firstDate = first['date']?.toString();
         final secondDate = second?['date']?.toString();

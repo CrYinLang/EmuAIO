@@ -26,8 +26,8 @@ android {
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        versionCode = 2114
-        versionName = "2.1.1.4"
+        versionCode = 2115
+        versionName = "2.1.1.5"
     }
 
     buildTypes {
