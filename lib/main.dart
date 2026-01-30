@@ -1,3 +1,4 @@
+//main.dart
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
@@ -151,7 +152,7 @@ class AppSettings extends ChangeNotifier {
   bool _isLoading = false;
 
   // ==================== 图标显示设置 ====================
-  bool _showTrainIcons = true;
+  bool _showTrainIcons = false;
   bool _showBureauIcons = true;
 
   // ==================== 图标包设置 ====================
@@ -193,7 +194,7 @@ class AppSettings extends ChangeNotifier {
       _midnightMode = prefs.getBool('midnightMode') ?? false;
 
       // 图标显示设置
-      _showTrainIcons = prefs.getBool('showTrainIcons') ?? true;
+      _showTrainIcons = prefs.getBool('showTrainIcons') ?? false;
       _showBureauIcons = prefs.getBool('showBureauIcons') ?? true;
 
       // 图标包设置
@@ -474,7 +475,7 @@ class AppSettings extends ChangeNotifier {
   void _setDefaultValues() {
     _themeMode = ThemeMode.dark;
     _midnightMode = false;
-    _showTrainIcons = true;
+    _showTrainIcons = false;
     _showBureauIcons = true;
     _currentIconPack = 'default';
     _iconPackPath = '';
@@ -743,8 +744,8 @@ class AppSettings extends ChangeNotifier {
       _midnightMode = false;
 
       // 重置图标显示设置
-      await prefs.setBool('showTrainIcons', true);
-      _showTrainIcons = true;
+      await prefs.setBool('showTrainIcons', false);
+      _showTrainIcons = false;
 
       await prefs.setBool('showBureauIcons', true);
       _showBureauIcons = true;

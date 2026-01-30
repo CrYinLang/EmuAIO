@@ -1,4 +1,4 @@
-// train_model.dart - 列车图标模型映射相关逻辑
+// train_model.dart
 class TrainModelUtils {
   static final List<String> _bureauFullNames = [
     '北京铁路局',

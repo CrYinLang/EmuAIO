@@ -1,3 +1,4 @@
+//home_page.dart
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -341,6 +342,13 @@ class _HomePageState extends State<HomePage> {
           return;
         }
 
+        if (input == '9178' || input == '9169') {
+          setState(() {
+            errorMsg = '?你什么意思阿';
+          });
+          return;
+        }
+
         final fullCode = prefix + input;
 
         final resp = await http.get(
@@ -350,7 +358,7 @@ class _HomePageState extends State<HomePage> {
 
         final List data = json.decode(resp.body);
         if (resp.body.isEmpty || resp.body == '[]' || data.isEmpty) {
-          setState(() => errorMsg = '未查询到车次');
+          setState(() => errorMsg = '未查询到车次,请尝试:\n1.前往12306查询今日是否运行\n2.切换数据源查询');
           return;
         }
 
@@ -413,8 +421,7 @@ class _HomePageState extends State<HomePage> {
         if (absDays > 2) {
           setState(() {
             isLoading = false;
-            final relation = difference.inDays > 0 ? '未来' : '过去';
-            errorMsg = '车次过期! 可能调图后删除列车\n或者上游API无数据!\n可切换第二数据源尝试';
+            errorMsg = '车次过期! 可能调图后删除列车\n或者上游API无数据!\n可切换第二数据源尝试\n或者是车次有误';
           });
           return;
         }
