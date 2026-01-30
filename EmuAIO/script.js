@@ -1,6 +1,6 @@
 async function fetchVersionInfo() {
     try {
-        const response = await fetch('/version.json');
+        const response = await fetch('EmuAIO/version.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -9,12 +9,6 @@ async function fetchVersionInfo() {
         updateDownloadButtons(versionData);
     } catch (error) {
         console.error('获取版本信息失败:', error);
-        // 使用默认版本信息作为后备
-        const fallbackData = {
-            Version: "2.1.1.3",
-            LastUpdate: "26-01-25-15-00",
-            download: "#"
-        };
         updateVersionDisplay(fallbackData);
     }
 }
