@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:archive/archive.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 import 'dart:io';
 
 import 'main.dart';
@@ -26,7 +27,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<Map<String, dynamic>?> _checkForUpdate() async {
     try {
       final response = await http.get(Uri.parse(
-          'https://gitee.com/CrYinLang/emu-aio/raw/master/version.txt'
+          'https://gitee.com/CrYinLang/emu-aio/raw/master/version.json'
       )).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
@@ -42,42 +43,34 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _selectAndLoadIconPack() async {
     if (!mounted) return;
 
-    setState(() {
-      isLoadingIconPack = true;
-    });
+    setState(() => isLoadingIconPack = true);
+    final isStillMounted = mounted;
 
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['zip'],
         allowMultiple: false,
       );
 
-      if (result != null && result.files.single.path != null) {
-        await _loadIconPack(File(result.files.single.path!));
+      if (!isStillMounted) return;
+
+      if (result?.files.single.path case final path?) {
+        await _loadIconPack(File(path));
       } else {
-        if (mounted) {
-          setState(() {
-            isLoadingIconPack = false;
-          });
-        }
+        setState(() => isLoadingIconPack = false);
       }
     } catch (e) {
+      if (!isStillMounted) return;
       _showErrorDialog('加载图标包失败: $e');
-      if (mounted) {
-        setState(() {
-          isLoadingIconPack = false;
-        });
-      }
+      setState(() => isLoadingIconPack = false);
     }
   }
 
   Future<void> _loadIconPack(File zipFile) async {
     if (!mounted) return;
 
-    setState(() {
-      isLoadingIconPack = true;
-    });
+    setState(() => isLoadingIconPack = true);
 
     try {
       final bytes = await zipFile.readAsBytes();
@@ -107,6 +100,15 @@ class _SettingsPageState extends State<SettingsPage> {
 
         final lowerName = filename.toLowerCase();
 
+        // ===================
+        // Zip Slip 安全防护
+        // ===================
+        final normalizedPath = p.normalize('$iconPackDir/$filename');
+        if (!normalizedPath.startsWith(iconPackDir)) {
+          throw Exception('检测到非法ZIP路径: $filename');
+        }
+
+        // manifest.json
         if (lowerName == 'manifest.json') {
           try {
             String manifestStr;
@@ -152,6 +154,7 @@ class _SettingsPageState extends State<SettingsPage> {
           }
         }
 
+        // icon.png（封面）
         else if (lowerName == 'icon.png') {
           final outputFile = File('$iconPackDir/icon.png');
 
@@ -164,6 +167,7 @@ class _SettingsPageState extends State<SettingsPage> {
           }
         }
 
+        // train/ 资源
         else if (lowerName.startsWith('train/')) {
           hasTrainFolder = true;
 
@@ -199,33 +203,21 @@ class _SettingsPageState extends State<SettingsPage> {
         metadata['author'] = '用户上传';
         metadata['iconCount'] = manifest.length;
       } else {
-        if (!metadata.containsKey('name') || metadata['name'] == null || metadata['name'].toString().isEmpty) {
-          metadata['name'] = '未命名图标包';
-        }
-        if (!metadata.containsKey('describe') || metadata['describe'] == null) {
-          metadata['describe'] = '';
-        }
-        if (!metadata.containsKey('author') || metadata['author'] == null) {
-          metadata['author'] = '未知作者';
-        }
-        if (!metadata.containsKey('iconCount')) {
-          metadata['iconCount'] = manifest.length;
-        }
+        metadata['name'] = (metadata['name']?.toString().trim().isNotEmpty == true)
+            ? metadata['name']
+            : '未命名图标包';
+
+        metadata['describe'] ??= '';
+        metadata['author'] ??= '未知作者';
+        metadata['iconCount'] ??= manifest.length;
       }
 
       String packName = metadata['name']?.toString().trim() ?? '未命名图标包';
       if (packName.isEmpty) {
         final zipFileName = zipFile.uri.pathSegments.last.replaceAll('.zip', '');
-        if (zipFileName.isNotEmpty) {
-          packName = _ensureUtf8String(zipFileName);
-        } else {
-          packName = '自定义图标包_${DateTime.now().millisecondsSinceEpoch}';
-        }
-      }
-
-      packName = packName.trim();
-      if (packName.isEmpty) {
-        packName = '未命名图标包';
+        packName = zipFileName.isNotEmpty
+            ? _ensureUtf8String(zipFileName)
+            : '自定义图标包_${DateTime.now().millisecondsSinceEpoch}';
       }
 
       metadata['loadTime'] = DateTime.now().toIso8601String();
@@ -240,6 +232,7 @@ class _SettingsPageState extends State<SettingsPage> {
       }
 
       if (!mounted) return;
+
       final settings = Provider.of<AppSettings>(context, listen: false);
 
       await settings.addIconPack(
@@ -257,7 +250,6 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         );
       }
-
     } catch (e) {
       _showErrorDialog('加载图标包失败: ${e.toString()}');
 
@@ -268,12 +260,11 @@ class _SettingsPageState extends State<SettingsPage> {
       }
     } finally {
       if (mounted) {
-        setState(() {
-          isLoadingIconPack = false;
-        });
+        setState(() => isLoadingIconPack = false);
       }
     }
   }
+
 
   Future<void> _cleanupFailedFiles() async {
   }

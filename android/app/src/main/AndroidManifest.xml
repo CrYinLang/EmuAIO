@@ -73,36 +73,32 @@
 
             <!-- ============ 新增：分享导入功能配置 ============ -->
 
-            <!-- 处理ZIP文件分享 -->
+            <!-- URL 处理（http/https 通用 scheme） -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:mimeType="application/zip" />
-                <data android:mimeType="application/x-zip-compressed" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
             </intent-filter>
 
-            <!-- 处理文件发送（单个文件） -->
+            <!-- 处理 ZIP 文件分享（最常见：从分享菜单发送单个文件） -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="application/zip" />
                 <data android:mimeType="application/x-zip-compressed" />
-                <data android:mimeType="application/octet-stream" />
             </intent-filter>
 
-            <!-- 处理文件路径（file:// 协议） -->
+            <!-- 处理 ZIP 文件打开（文件管理器/浏览器/其他 App 的“打开方式”） -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="file" />
-                <data android:mimeType="*/*" />
-                <data android:pathPattern=".*\\.zip" />
-                <data android:host="*" />
+                <data android:mimeType="application/zip" />
+                <data android:mimeType="application/x-zip-compressed" />
             </intent-filter>
 
-            <!-- 处理内容URI（content:// 协议） -->
+            <!-- 显式支持 content:// URI（Android 10+ 主流，强烈推荐） -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -115,17 +111,6 @@
                 android:name="io.flutter.embedding.android.NormalTheme"
                 android:resource="@style/NormalTheme" />
         </activity>
-
-        <!-- FileProvider配置 -->
-        <provider
-            android:name="vn.hunghd.flutterdownloader.DownloadedFileProvider"
-            android:authorities="${applicationId}.flutter_downloader.provider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/provider_paths" />
-        </provider>
 
         <meta-data
             android:name="flutterEmbedding"

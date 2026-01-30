@@ -818,6 +818,9 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
+  int _settingsTapCount = 0;
+  DateTime? _lastTapTime;
+  OverlayEntry? _tapCounterOverlay;
 
   final List<Widget> _pages = [
     const HomePage(),
@@ -826,6 +829,62 @@ class _MainScreenState extends State<MainScreen> {
     const SettingsPage(),
   ];
 
+  void _hideTapCounterOverlay() {
+    if (_tapCounterOverlay != null) {
+      _tapCounterOverlay?.remove();
+      _tapCounterOverlay = null;
+    }
+  }
+
+  void _handleSettingsTap() {
+    final now = DateTime.now();
+
+    // 重置计数器（如果距离上次点击超过5秒）
+    if (_lastTapTime != null &&
+        now.difference(_lastTapTime!) > const Duration(seconds: 5)) {
+      _settingsTapCount = 0;
+    }
+
+    _lastTapTime = now;
+    _settingsTapCount++;
+
+    if (_settingsTapCount >= 10) {
+      _settingsTapCount = 0;
+      _hideTapCounterOverlay();
+
+      // 直接执行重置
+      _performImmediateReset();
+    }
+
+    setState(() {
+      _currentIndex = 3; // 切换到设置页面
+    });
+  }
+
+  Future<void> _performImmediateReset() async {
+    final context = this.context;
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final settings = Provider.of<AppSettings>(context, listen: false);
+
+    await settings.resetAllSettings();
+
+    scaffoldMessenger.showSnackBar(
+      SnackBar(
+        content: Text('数据清除中!'),
+      ),
+    );
+
+    await Future.delayed(Duration(seconds: 1));
+
+    exit(0);
+  }
+
+  @override
+  void dispose() {
+    _hideTapCounterOverlay();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -833,7 +892,15 @@ class _MainScreenState extends State<MainScreen> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         type: BottomNavigationBarType.fixed,
-        onTap: (index) => setState(() => _currentIndex = index),
+        onTap: (index) {
+          if (index == 3) { // 设置页面索引
+            _handleSettingsTap();
+          } else {
+            _settingsTapCount = 0; // 重置计数器
+            _hideTapCounterOverlay();
+            setState(() => _currentIndex = index);
+          }
+        },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: '首页'),
           BottomNavigationBarItem(icon: Icon(Icons.photo_library), label: '图鉴'),
