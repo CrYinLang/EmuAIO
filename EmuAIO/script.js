@@ -1,6 +1,6 @@
 async function fetchVersionInfo() {
     try {
-        const response = await fetch('EmuAIO/version.json');
+        const response = await fetch('version.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
