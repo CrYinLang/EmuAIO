@@ -388,7 +388,7 @@ class _GalleryPageState extends State<GalleryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('动车图鉴'),
+        title: const Text('铁路动车组图鉴'),
       ),
       body: Column(
         children: [
@@ -431,7 +431,7 @@ class _GalleryPageState extends State<GalleryPage> {
                 ),
               ),
               child: const Text(
-                '查看完整图鉴',
+                '跳转其他图鉴',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               ),
             ),

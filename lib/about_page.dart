@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'main.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'dart:math';
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
@@ -25,7 +27,7 @@ class AboutPage extends StatelessWidget {
             const SizedBox(height: 24),
             _buildCopyrightNotice(context),
             const SizedBox(height: 28),
-            _buildImage(context),
+            _buildTips(context),
           ],
         ),
       ),
@@ -58,6 +60,15 @@ class AboutPage extends StatelessWidget {
         const SizedBox(height: 12),
         Text(
           '为什么没有图标?因为版权没谈拢,但是有预设包,你可以自己制作,也可以发我审核,进行公开内置',
+          style: TextStyle(
+            fontSize: 16,
+            color: theme.colorScheme.onSurfaceVariant,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          '似乎是最终版本?',
           style: TextStyle(
             fontSize: 16,
             color: theme.colorScheme.onSurfaceVariant,
@@ -163,7 +174,7 @@ class AboutPage extends StatelessWidget {
         _buildDataSourceItemWithIconData(
           context: context,
           icon: Icons.storage,
-          title: 'emu.passearch.info',
+          title: 'EmuPassearch',
           description: '本地数据库',
         ),
         _buildDataSourceItemWithIconData(
@@ -174,15 +185,9 @@ class AboutPage extends StatelessWidget {
         ),
         _buildDataSourceItemWithIconData(
           context: context,
-          icon: Icons.cloud,
+          icon: Icons.cloud_done,
           title: '12306',
           description: '联网交路查询',
-        ),
-        _buildDataSourceItemWithIconData(
-          context: context,
-          icon: Icons.public,
-          title: 'china-emu.cn',
-          description: '完整动车图鉴页面',
         ),
       ],
     );
@@ -370,55 +375,66 @@ class AboutPage extends StatelessWidget {
     );
   }
 
-  Widget _buildImage(BuildContext context) {
-    final theme = Theme.of(context);
-    final onSurfaceVariant = theme.colorScheme.onSurfaceVariant;
-    final surfaceContainerHighest = theme.colorScheme.surfaceContainerHighest;
+  Widget _buildTips(BuildContext context) {
+    return StatefulBuilder(
+      builder: (BuildContext context, StateSetter setState) {
+        Future<String>? tipFuture = _loadRandomTip();
 
-    return Center(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          width: double.infinity,
-          height: 200,
-          color: Colors.transparent,
-          child: Image.asset(
-            'assets/icon/banner.png',
-            width: double.infinity,
-            height: 200,
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                width: double.infinity,
-                height: 200,
-                color: surfaceContainerHighest,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.broken_image,
-                      size: 48,
-                      color: Color.fromARGB(
-                        128, // 0.5 透明度对应 128
-                        (onSurfaceVariant.r * 255).round(),
-                        (onSurfaceVariant.g * 255).round(),
-                        (onSurfaceVariant.b * 255).round(),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      '图片加载失败',
-                      style: TextStyle(
-                        color: onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+        void refreshTip() {
+          setState(() {
+            tipFuture = _loadRandomTip();
+          });
+        }
+
+        return FutureBuilder<String>(
+          future: tipFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  child: CircularProgressIndicator(),
                 ),
               );
-            },
-          ),
-        ),
-      ),
+            } else {
+              return Center(
+                child: GestureDetector(
+                  onTap: refreshTip,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    child: Text(
+                      snapshot.data ?? '',
+                      style: TextStyle(
+                        fontFamily: 'Tips',
+                        fontSize: 20,
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        height: 1.6,
+                        letterSpacing: 0.5,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              );
+            }
+          },
+        );
+      },
     );
+  }
+
+  Future<String> _loadRandomTip() async {
+    try {
+      final String content = await rootBundle.loadString('assets/tips.txt');
+      final List<String> lines = content.split('\n').where((line) => line.trim().isNotEmpty).toList();
+
+      final int randomIndex = Random().nextInt(lines.length);
+      return lines[randomIndex].trim();
+    } catch (e) {
+      return '';
+    }
   }
 }

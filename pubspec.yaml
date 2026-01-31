@@ -33,3 +33,8 @@ flutter:
     - assets/icon/
     - assets/icon/bureau/
     - assets/icon/train/
+
+  fonts:
+    - family: Tips
+      fonts:
+        - asset: assets/tips.ttf

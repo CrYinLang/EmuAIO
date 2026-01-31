@@ -360,14 +360,10 @@ class _HomePageState extends State<HomePage> {
             headers: headers,
           );
         } else {
-          DateTime now = DateTime.now();
-          String formattedDate = "${now.year}${now.month.toString().padLeft(
-              2, '0')}${now.day.toString().padLeft(2, '0')}";
           http.Response? resp12306;
           resp12306 = await http.get(
             Uri.parse(
-                'https://mobile.12306.cn/wxxcx/openplatform-inner/miniprogram/wifiapps/appFrontEnd/v2/lounge/open-smooth-common/trainStyleBatch/getCarDetail?carCode=&trainCode=${fullCode
-                    .toUpperCase()}&runningDay=$formattedDate&reqType=form'),
+                'https://mobile.12306.cn/wxxcx/openplatform-inner/miniprogram/wifiapps/appFrontEnd/v2/lounge/open-smooth-common/trainStyleBatch/getCarDetail?carCode=&trainCode=${fullCode.toUpperCase()}&runningDay=0&reqType=form'),
             headers: headers,
           );
           if (resp12306.statusCode == 200) {
@@ -410,7 +406,6 @@ class _HomePageState extends State<HomePage> {
           return;
         }
 
-        // 1. 过滤掉CR200J
         final List<dynamic> filteredData = [];
         for (var i = 0; i < data.length; i++) {
           final item = data[i];
