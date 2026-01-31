@@ -108,7 +108,7 @@ class UpdateResultDialog extends StatelessWidget {
 
       if (remoteBuild > currentBuild) {
         hasUpdate = true;
-        resultMessage = '发现新版本 ${AppConstants.version}-->$newVersion\n更新时间: $updateTime\n更新介绍:\n$describeText\n\n请选择下载链接：';
+        resultMessage = '发现新版本 ${AppConstants.version}-->$newVersion\n\n更新时间: $updateTime\n\n更新介绍:\n$describeText\n\n请选择下载链接：';
         resultColor = AppColors.matchMedium;
         resultIcon = Icons.system_update;
       } else {
@@ -123,61 +123,92 @@ class UpdateResultDialog extends StatelessWidget {
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(resultIcon, size: 60, color: resultColor),
-            const SizedBox(height: 20),
-            Text(hasUpdate ? '发现新版本' : '检查完成',
-                style:
-                const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            Text(resultMessage, textAlign: TextAlign.center),
-            const SizedBox(height: 24),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.8, // 最大高度为屏幕的80%
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(resultIcon, size: 60, color: resultColor),
+                const SizedBox(height: 20),
+                Text(
+                  hasUpdate ? '发现新版本' : '检查完成',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
 
-            if (hasUpdate) ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _launchBrowser(context, downloadUrl!);
-                      },
-                      icon: const Icon(Icons.download),
-                      label: const Text('Github'),
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue),
+                // 更新描述区域
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: SelectableText(
+                    resultMessage,
+                    style: TextStyle(
+                      fontSize: 16,
+                      height: 1.5,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _launchBrowser(context, downloadUrl1!);
-                      },
-                      icon: const Icon(Icons.download),
-                      label: const Text('QQ群'),
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green),
-                    ),
+                ),
+
+                const SizedBox(height: 24),
+
+                if (hasUpdate) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _launchBrowser(context, downloadUrl!);
+                          },
+                          icon: const Icon(Icons.download),
+                          label: const Text('Github'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _launchBrowser(context, downloadUrl1!);
+                          },
+                          icon: const Icon(Icons.download),
+                          label: const Text('QQ群'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 12),
                 ],
-              ),
-              const SizedBox(height: 12),
-            ],
 
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(hasUpdate ? '取消下载' : '关闭'),
-              ),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(hasUpdate ? '取消下载' : '关闭'),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
