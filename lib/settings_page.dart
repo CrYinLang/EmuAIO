@@ -106,7 +106,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   '${settings.availableIconPacks.length} 个',
                   style: TextStyle(
                     fontSize: 12,
-                    color: theme.colorScheme.onSurface.withValues(alpha:0.6), // 修正这里
+                    color: theme.colorScheme.onSurface.withValues(alpha:0.6),
                   ),
                 ),
                 onTap: () => showDialog(
@@ -143,12 +143,12 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
               const SizedBox(height: 8),
               Padding(
-                padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 8.0), // 修正这里
+                padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 8.0),
                 child: Text(
                   settings.dataSourceDescription,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.7), // 修正这里
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.7),
                   ),
                 ),
               ),
@@ -233,7 +233,7 @@ class _SettingsPageState extends State<SettingsPage> {
         subtitle,
         style: TextStyle(
           fontSize: 12,
-          color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.7), // 修正这里
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.7),
         ),
       ),
       secondary: Icon(icon, color: Theme.of(context).colorScheme.primary),
@@ -267,7 +267,7 @@ class _SettingsPageState extends State<SettingsPage> {
         subtitle,
         style: TextStyle(
           fontSize: 12,
-          color: theme.colorScheme.onSurface.withValues(alpha:0.7), // 修正这里
+          color: theme.colorScheme.onSurface.withValues(alpha:0.7),
         ),
       )
           : null,
@@ -283,7 +283,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // 新增：数据源设置选项
   Widget _dataSourceTile(
       BuildContext context, {
         required AppSettings settings,
@@ -302,7 +301,7 @@ class _SettingsPageState extends State<SettingsPage> {
         decoration: BoxDecoration(
           color: isSelected
               ? theme.colorScheme.primary.withValues(alpha:0.1)
-              : theme.colorScheme.surfaceContainerHighest, // 修正这里
+              : theme.colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(
@@ -363,77 +362,9 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       onTap: () {
         if (!isSelected) {
-          _showDataSourceConfirmDialog(context, settings, source, title);
+          // 直接切换，不显示对话框
+          settings.setDataSource(source);
         }
-      },
-    );
-  }
-
-  // 新增：数据源切换确认对话框
-  void _showDataSourceConfirmDialog(
-      BuildContext context,
-      AppSettings settings,
-      TrainDataSource newSource,
-      String sourceName,
-      ) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('切换数据源'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('确定要切换到 $sourceName 吗？'),
-              const SizedBox(height: 8),
-              Text(
-                '切换后，所有查询将使用新的数据源。',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.6), // 修正这里
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('取消'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                try {
-                  await settings.setDataSource(newSource);
-                  if (!context.mounted) return;
-                  Navigator.of(context).pop();
-
-                  // 显示切换成功的提示
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('已切换到 $sourceName'),
-                      duration: const Duration(seconds: 2),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  );
-                } catch (e) {
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('切换失败: ${e.toString()}'),
-                      backgroundColor: Colors.red,
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                }
-              },
-              child: const Text('切换'),
-            ),
-          ],
-        );
       },
     );
   }
@@ -459,7 +390,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha:0.3), // 修正这里
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha:0.3),
                       width: 2,
                     ),
                   ),
@@ -469,7 +400,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
-                          color: Theme.of(context).colorScheme.primary.withValues(alpha:0.1), // 修正这里
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha:0.1),
                           child: Icon(
                             Icons.person,
                             size: 40,
@@ -496,7 +427,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   'Cr.YinLang',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.7), // 修正这里
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.7),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -505,18 +436,17 @@ class _SettingsPageState extends State<SettingsPage> {
                   'EmuAIO',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.5), // 修正这里
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.5),
                     fontStyle: FontStyle.italic,
                   ),
                 ),
                 const SizedBox(height: 24),
 
-                // 描述文本
                 Text(
                   '欢迎关注我的社交账号获取更多信息',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.6), // 修正这里
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.6),
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -546,7 +476,6 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                     const SizedBox(width: 12),
 
-                    // 抖音按钮
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () async {
@@ -571,7 +500,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 const SizedBox(height: 12),
 
-                // 关闭按钮
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
