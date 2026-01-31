@@ -6,7 +6,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'main.dart';
 import 'color_theme.dart';
 
-/// ================= 更新网络服务 =================
 class UpdateService {
   static Future<Map<String, dynamic>?> checkForUpdate() async {
     try {
@@ -183,7 +182,6 @@ class UpdateResultDialog extends StatelessWidget {
   }
 }
 
-/// ================= 外部浏览器打开 =================
 Future<void> _launchBrowser(BuildContext context, String url) async {
   final uri = Uri.parse(url);
   if (await canLaunchUrl(uri)) {
