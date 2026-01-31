@@ -250,7 +250,7 @@ class _GalleryPageState extends State<GalleryPage> {
         number: '2150',
         title: 'CRH2C-2150',
         infoItems: {
-          '代管路局': '北京铁路局',
+          '代管路局': '上海铁路局',
           '生产厂家': '南车青岛四方',
           '备注': '和谐号350级别高速综合检测列车，CRH380A新头型实验列车',
           '类型': '检测-上线',

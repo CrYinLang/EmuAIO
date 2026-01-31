@@ -516,22 +516,26 @@ class _HomePageState extends State<HomePage> {
         // 查询交路（一次即可，重联共用）
         String routeInfo = '';
         final routeEmu = uniqueEmuNos.first;
+        http.Response? emuResp;  // Declare as http.Response instead of String
 
-        final emuResp = await http.get(
-          Uri.parse('https://api.rail.re/emu/$routeEmu'),
-          headers: headers,
-        );
+        if (settings.dataSource == TrainDataSource.railRe) {
+          emuResp = await http.get(
+            Uri.parse('https://api.rail.re/emu/$routeEmu'),
+            headers: headers,
+          );
 
-        if (emuResp.statusCode == 200 &&
-            emuResp.body.isNotEmpty &&
-            emuResp.body != '[]') {
-          final emuData = json.decode(emuResp.body);
-          if (emuData.isNotEmpty) {
-            final item = emuData[0];
-            final trainNo = item['train_no']?.toString().trim() ?? '';
-            final date = item['date']?.toString() ?? '';
-            if (trainNo.isNotEmpty) {
-              routeInfo = '交路时间: $date\n本务车次: $trainNo';
+          if (emuResp.statusCode == 200 &&
+              emuResp.body.isNotEmpty &&
+              emuResp.body != '[]') {
+            final emuData = json.decode(emuResp.body);
+            if (emuData.isNotEmpty) {
+              final item = emuData[0];
+              final trainNo = item['train_no']?.toString().trim() ?? '';
+              final date = item['date']?.toString() ?? '';
+
+              if (trainNo.isNotEmpty) {
+                routeInfo = '正在担当: $date\n本务车次: $trainNo';
+              }
             }
           }
         }
