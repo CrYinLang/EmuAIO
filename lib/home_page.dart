@@ -359,26 +359,48 @@ class _HomePageState extends State<HomePage> {
             Uri.parse('https://api.rail.re/train/${fullCode.toUpperCase()}'),
             headers: headers,
           );
-        } else{
+        } else {
           DateTime now = DateTime.now();
-          String formattedDate = "${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}";
+          String formattedDate = "${now.year}${now.month.toString().padLeft(
+              2, '0')}${now.day.toString().padLeft(2, '0')}";
           http.Response? resp12306;
           resp12306 = await http.get(
-            Uri.parse('https://mobile.12306.cn/wxxcx/openplatform-inner/miniprogram/wifiapps/appFrontEnd/v2/lounge/open-smooth-common/trainStyleBatch/getCarDetail?carCode=&trainCode=${fullCode.toUpperCase()}&runningDay=$formattedDate&reqType=form'),
+            Uri.parse(
+                'https://mobile.12306.cn/wxxcx/openplatform-inner/miniprogram/wifiapps/appFrontEnd/v2/lounge/open-smooth-common/trainStyleBatch/getCarDetail?carCode=&trainCode=${fullCode
+                    .toUpperCase()}&runningDay=$formattedDate&reqType=form'),
             headers: headers,
           );
           if (resp12306.statusCode == 200) {
-            Map<String, dynamic> data = json.decode(resp12306.body);
+            try {
+              Map<String, dynamic> data = json.decode(resp12306.body);
 
-            String carCode = data['content']['data']['carCode'];
+              if (data['content'] == null) {
+                setState(() => errorMsg = '返回数据格式错误: content为空\n当前数据源: ${settings.dataSource.toString().split('.').last}');
+                return;
+              }
 
-            String responseBody = '[{"DateTime":"${DateTime.now()}","emu_no":"$carCode","train_no":"${fullCode.toUpperCase()}"}]';
-            resp = http.Response(responseBody, 200);
+              if (data['content'] is! Map || data['content']['data'] == null) {
+                setState(() => errorMsg = '车次不存在!\n当前数据源: ${settings.dataSource.toString().split('.').last}');
+                return;
+              }
+
+              // 最后获取 carCode
+              String? carCode = data['content']['data']['carCode'] as String?;
+
+              if (carCode == null || carCode.isEmpty) {
+                setState(() => errorMsg = '车次不存在!\n当前数据源: ${settings.dataSource.toString().split('.').last}');
+              } else {
+                String responseBody = '[{"DateTime":"${DateTime.now()}","emu_no":"$carCode","train_no":"${fullCode.toUpperCase()}"}]';
+                resp = http.Response(responseBody, 200);
+              }
+            } catch (e) {
+              setState(() => errorMsg = '解析返回数据失败: $e\n当前数据源: ${settings.dataSource.toString().split('.').last}');
+            }
           }
         }
 
         if (resp == null) {
-          setState(() => errorMsg = '请求失败，请检查网络连接或数据源设置');
+          setState(() => errorMsg = '请求失败，请检查网络连接或数据源设置\n当前数据源: ${settings.dataSource.toString().split('.').last}');
           return;
         }
 
@@ -405,7 +427,7 @@ class _HomePageState extends State<HomePage> {
         }
 
         if (filteredData.isEmpty) {
-          setState(() => errorMsg = '没有可用的动车组数据');
+          setState(() => errorMsg = '没有可用的动车组数据\n当前数据源: ${settings.dataSource.toString().split('.').last}');
           return;
         }
 
@@ -431,7 +453,7 @@ class _HomePageState extends State<HomePage> {
           if (latestDate == null) {
             setState(() {
               isLoading = false;
-              errorMsg = '无法解析车次日期';
+              errorMsg = '无法解析车次日期\n当前数据源: ${settings.dataSource.toString().split('.').last}';
             });
             return;
           }
@@ -448,8 +470,7 @@ class _HomePageState extends State<HomePage> {
           if (absDays > 2) {
             setState(() {
               isLoading = false;
-              errorMsg =
-              '车次过期! 可能调图后删除列车\n或者上游API无数据!\n可切换第二数据源尝试\n或者是车次有误';
+              errorMsg ='车次过期! 可能调图后删除列车\n或者上游API无数据!\n可切换第二数据源尝试\n或者是车次有误\n当前数据源: ${settings.dataSource.toString().split('.').last}';
             });
             return;
           }
@@ -488,7 +509,7 @@ class _HomePageState extends State<HomePage> {
         final uniqueEmuNos = emuNos.toSet().toList();
 
         if (uniqueEmuNos.isEmpty) {
-          setState(() => errorMsg = 'API未返回车组号');
+          setState(() => errorMsg = 'API未返回车组号\n当前数据源: ${settings.dataSource.toString().split('.').last}');
           return;
         }
 

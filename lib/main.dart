@@ -14,7 +14,7 @@ import 'about_page.dart';
 import 'settings_page.dart';
 
 class AppConstants {
-  static const String lastUpdate = '26-01-31-09-35';
+  static const String lastUpdate = '26-01-31-11-40';
   static const String version = '2.1.1.6';
   static const String build = '2116';
   //记得 android\app\src\build.gradle.kts 也要改
