@@ -88,6 +88,7 @@ class UpdateResultDialog extends StatelessWidget {
     String resultMessage = '';
     Color resultColor = AppColors.matchHigh;
     IconData resultIcon = Icons.check_circle;
+    String? describeText;
     String? downloadUrl;
     String? downloadUrl1;
     String? newVersion;
@@ -103,10 +104,11 @@ class UpdateResultDialog extends StatelessWidget {
       updateTime = versionInfo!['LastUpdate'];
       downloadUrl = versionInfo!['download'];
       downloadUrl1 = versionInfo!['download1'];
+      describeText = versionInfo!['describe'] ?? '修复了一些已知问题';
 
       if (remoteBuild > currentBuild) {
         hasUpdate = true;
-        resultMessage = '发现新版本 $newVersion\n更新时间: $updateTime\n\n请选择下载链接：';
+        resultMessage = '发现新版本 ${AppConstants.version}-->$newVersion\n更新时间: $updateTime\n更新介绍:\n$describeText\n\n请选择下载链接：';
         resultColor = AppColors.matchMedium;
         resultIcon = Icons.system_update;
       } else {
