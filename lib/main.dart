@@ -111,6 +111,11 @@ class IconPackInfo {
   }
 }
 
+enum TrainDataSource {
+  railRe,
+  official12306,
+}
+
 class AppSettings extends ChangeNotifier {
   // ==================== 图标文件名获取 ====================
   String getIconFileName(String iconModel) {
@@ -181,7 +186,7 @@ class AppSettings extends ChangeNotifier {
   static const String build = '2105';
   static const String lastUpdate = '26-01-23-18-05';
 
-  // ==================== 初始化设置 ====================
+// ==================== 初始化设置 ====================
   Future<void> loadSettings() async {
     _isLoading = true;
     notifyListeners();
@@ -192,6 +197,10 @@ class AppSettings extends ChangeNotifier {
       // 主题设置
       _themeMode = (prefs.getBool('isDark') ?? true) ? ThemeMode.dark : ThemeMode.light;
       _midnightMode = prefs.getBool('midnightMode') ?? false;
+
+      // 数据源设置
+      final dataSourceIndex = prefs.getInt('dataSource') ?? 0;
+      _dataSource = TrainDataSource.values[dataSourceIndex.clamp(0, TrainDataSource.values.length - 1)];
 
       // 图标显示设置
       _showTrainIcons = prefs.getBool('showTrainIcons') ?? false;
@@ -458,6 +467,41 @@ class AppSettings extends ChangeNotifier {
       return _availableIconPacks.firstWhere((pack) => pack.name == _currentIconPack);
     } catch (e) {
       return null;
+    }
+  }
+
+  // ==================== 数据源设置 ====================
+  TrainDataSource _dataSource = TrainDataSource.railRe;
+
+  TrainDataSource get dataSource => _dataSource;
+
+  String get dataSourceDisplayName {
+    switch (_dataSource) {
+      case TrainDataSource.railRe:
+        return 'Rail.re';
+      case TrainDataSource.official12306:
+        return '12306官方';
+    }
+  }
+
+  String get dataSourceDescription {
+    switch (_dataSource) {
+      case TrainDataSource.railRe:
+        return '第三方火车时刻表API，更新频率高，提供更丰富的数据';
+      case TrainDataSource.official12306:
+        return '官方数据源，最准确可靠，但可能更新稍慢';
+    }
+  }
+
+  Future<void> setDataSource(TrainDataSource source) async {
+    if (_dataSource != source) {
+      _dataSource = source;
+
+      // 保存到本地存储
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('dataSource', source.index);
+
+      notifyListeners();
     }
   }
 
@@ -732,48 +776,10 @@ class AppSettings extends ChangeNotifier {
   Future<void> resetAllSettings() async {
     _isLoading = true;
     notifyListeners();
-
-    try {
       final prefs = await SharedPreferences.getInstance();
-
-      // 重置主题设置
-      await prefs.setBool('isDark', true);
-      _themeMode = ThemeMode.dark;
-
-      await prefs.setBool('midnightMode', false);
-      _midnightMode = false;
-
-      // 重置图标显示设置
-      await prefs.setBool('showTrainIcons', false);
-      _showTrainIcons = false;
-
-      await prefs.setBool('showBureauIcons', true);
-      _showBureauIcons = true;
-
-      // 重置图标包设置
-      await prefs.setString('currentIconPack', 'default');
-      _currentIconPack = 'default';
-
-      await prefs.setString('iconPackPath', '');
-      _iconPackPath = '';
-
-      await prefs.setString('iconPackManifest', '');
-      _iconPackManifest = {};
-
-      await prefs.setString('iconPackMetadata', '');
-      _iconPackMetadata = _createDefaultMetadata();
-
-      // 重置图标包列表
-      await prefs.remove('availableIconPacks');
-      _availableIconPacks.clear();
-      await _loadIconPacksList();
-
-    } catch (e) {
-      rethrow;
-    } finally {
+      await prefs.clear();
       _isLoading = false;
       notifyListeners();
-    }
   }
 
   // ==================== 导出设置 ====================
@@ -864,19 +870,9 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _performImmediateReset() async {
     final context = this.context;
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
     final settings = Provider.of<AppSettings>(context, listen: false);
 
     await settings.resetAllSettings();
-
-    scaffoldMessenger.showSnackBar(
-      SnackBar(
-        content: Text('数据清除中!'),
-      ),
-    );
-
-    await Future.delayed(Duration(seconds: 1));
-
     exit(0);
   }
 

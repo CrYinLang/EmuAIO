@@ -36,7 +36,10 @@ class _SettingsPageState extends State<SettingsPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('设置'), centerTitle: true),
+      appBar: AppBar(
+        title: const Text('设置'),
+        centerTitle: true,
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -103,7 +106,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   '${settings.availableIconPacks.length} 个',
                   style: TextStyle(
                     fontSize: 12,
-                    color: theme.colorScheme.onSurface.withAlpha(153),
+                    color: theme.colorScheme.onSurface.withValues(alpha:0.6), // 修正这里
                   ),
                 ),
                 onTap: () => showDialog(
@@ -116,22 +119,38 @@ class _SettingsPageState extends State<SettingsPage> {
 
           const SizedBox(height: 16),
 
+          // 更新后的数据源设置卡片
           _sectionCard(
             context,
             icon: Icons.storage,
             title: '车次数据源设置',
             children: [
-              _settingsTile(
+              _dataSourceTile(
                 context,
-                icon: Icons.cloud_upload,
+                settings: settings,
+                source: TrainDataSource.railRe,
                 title: 'Rail.re',
-                trailingIcon: Icons.check_circle,
+                description: '第三方数据源，更新频率高',
+                icon: Icons.cloud_upload,
               ),
-              _settingsTile(
+              _dataSourceTile(
                 context,
+                settings: settings,
+                source: TrainDataSource.official12306,
+                title: '12306官方',
+                description: '官方数据，最准确可靠',
                 icon: Icons.train,
-                title: '12306',
-                trailingIcon: Icons.arrow_forward_ios,
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 8.0), // 修正这里
+                child: Text(
+                  settings.dataSourceDescription,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.7), // 修正这里
+                  ),
+                ),
               ),
             ],
           ),
@@ -173,14 +192,25 @@ class _SettingsPageState extends State<SettingsPage> {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Column(children: [_sectionTitle(context, icon, title), ...children]),
+      child: Column(
+        children: [
+          _sectionTitle(context, icon, title),
+          ...children,
+        ],
+      ),
     );
   }
 
   Widget _sectionTitle(BuildContext context, IconData icon, String title) {
     return ListTile(
       leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 16,
+        ),
+      ),
     );
   }
 
@@ -193,8 +223,19 @@ class _SettingsPageState extends State<SettingsPage> {
         required Function(bool) onChanged,
       }) {
     return SwitchListTile(
-      title: Text(title),
-      subtitle: Text(subtitle),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(
+          fontSize: 12,
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.7), // 修正这里
+        ),
+      ),
       secondary: Icon(icon, color: Theme.of(context).colorScheme.primary),
       value: value,
       onChanged: onChanged,
@@ -212,14 +253,188 @@ class _SettingsPageState extends State<SettingsPage> {
       }) {
     final theme = Theme.of(context);
     return ListTile(
-      leading: icon != null ? Icon(icon, color: theme.colorScheme.primary) : null,
-      title: Text(title),
-      subtitle: subtitle != null ? Text(subtitle) : null,
+      leading: icon != null
+          ? Icon(icon, color: theme.colorScheme.primary, size: 24)
+          : null,
+      title: Text(
+        title,
+        style: TextStyle(
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      subtitle: subtitle != null
+          ? Text(
+        subtitle,
+        style: TextStyle(
+          fontSize: 12,
+          color: theme.colorScheme.onSurface.withValues(alpha:0.7), // 修正这里
+        ),
+      )
+          : null,
       trailing: trailing ??
           (trailingIcon != null
-              ? Icon(trailingIcon, size: 16, color: theme.colorScheme.onSurfaceVariant)
+              ? Icon(
+            trailingIcon,
+            size: 16,
+            color: theme.colorScheme.onSurfaceVariant,
+          )
               : null),
       onTap: onTap,
+    );
+  }
+
+  // 新增：数据源设置选项
+  Widget _dataSourceTile(
+      BuildContext context, {
+        required AppSettings settings,
+        required TrainDataSource source,
+        required String title,
+        required String description,
+        required IconData icon,
+      }) {
+    final theme = Theme.of(context);
+    final isSelected = settings.dataSource == source;
+
+    return ListTile(
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: isSelected
+              ? theme.colorScheme.primary.withValues(alpha:0.1)
+              : theme.colorScheme.surfaceContainerHighest, // 修正这里
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          icon,
+          color: isSelected
+              ? theme.colorScheme.primary
+              : theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+      title: Row(
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: isSelected
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurface,
+            ),
+          ),
+          if (isSelected) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                '当前',
+                style: TextStyle(
+                  color: theme.colorScheme.onPrimary,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+      subtitle: Text(
+        description,
+        style: TextStyle(
+          fontSize: 12,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+      trailing: isSelected
+          ? Icon(
+        Icons.check_circle,
+        color: theme.colorScheme.primary,
+        size: 20,
+      )
+          : Icon(
+        Icons.circle_outlined,
+        color: theme.colorScheme.outline,
+        size: 20,
+      ),
+      onTap: () {
+        if (!isSelected) {
+          _showDataSourceConfirmDialog(context, settings, source, title);
+        }
+      },
+    );
+  }
+
+  // 新增：数据源切换确认对话框
+  void _showDataSourceConfirmDialog(
+      BuildContext context,
+      AppSettings settings,
+      TrainDataSource newSource,
+      String sourceName,
+      ) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('切换数据源'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('确定要切换到 $sourceName 吗？'),
+              const SizedBox(height: 8),
+              Text(
+                '切换后，所有查询将使用新的数据源。',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.6), // 修正这里
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('取消'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                try {
+                  await settings.setDataSource(newSource);
+                  if (!context.mounted) return;
+                  Navigator.of(context).pop();
+
+                  // 显示切换成功的提示
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('已切换到 $sourceName'),
+                      duration: const Duration(seconds: 2),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  );
+                } catch (e) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('切换失败: ${e.toString()}'),
+                      backgroundColor: Colors.red,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+              child: const Text('切换'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -244,7 +459,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: Theme.of(context).colorScheme.primary.withAlpha(76),
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha:0.3), // 修正这里
                       width: 2,
                     ),
                   ),
@@ -254,7 +469,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
-                          color: Theme.of(context).colorScheme.primary.withAlpha(25),
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha:0.1), // 修正这里
                           child: Icon(
                             Icons.person,
                             size: 40,
@@ -281,7 +496,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   'Cr.YinLang',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Theme.of(context).colorScheme.onSurface.withAlpha(179),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.7), // 修正这里
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -290,7 +505,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   'EmuAIO',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Theme.of(context).colorScheme.onSurface.withAlpha(128),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.5), // 修正这里
                     fontStyle: FontStyle.italic,
                   ),
                 ),
@@ -301,7 +516,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   '欢迎关注我的社交账号获取更多信息',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.6), // 修正这里
                   ),
                   textAlign: TextAlign.center,
                 ),
