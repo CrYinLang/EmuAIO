@@ -351,14 +351,40 @@ class _HomePageState extends State<HomePage> {
 
         final fullCode = prefix + input;
 
-        final resp = await http.get(
-          Uri.parse('https://api.rail.re/train/${fullCode.toUpperCase()}'),
-          headers: headers,
-        );
+        final settings = Provider.of<AppSettings>(context, listen: false);
+        http.Response? resp;
+
+        if (settings.dataSource == TrainDataSource.railRe) {
+          resp = await http.get(
+            Uri.parse('https://api.rail.re/train/${fullCode.toUpperCase()}'),
+            headers: headers,
+          );
+        } else{
+          DateTime now = DateTime.now();
+          String formattedDate = "${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}";
+          http.Response? resp12306;
+          resp12306 = await http.get(
+            Uri.parse('https://mobile.12306.cn/wxxcx/openplatform-inner/miniprogram/wifiapps/appFrontEnd/v2/lounge/open-smooth-common/trainStyleBatch/getCarDetail?carCode=&trainCode=${fullCode.toUpperCase()}&runningDay=$formattedDate&reqType=form'),
+            headers: headers,
+          );
+          if (resp12306.statusCode == 200) {
+            Map<String, dynamic> data = json.decode(resp12306.body);
+
+            String carCode = data['content']['data']['carCode'];
+
+            String responseBody = '[{"DateTime":"${DateTime.now()}","emu_no":"$carCode","train_no":"${fullCode.toUpperCase()}"}]';
+            resp = http.Response(responseBody, 200);
+          }
+        }
+
+        if (resp == null) {
+          setState(() => errorMsg = '请求失败，请检查网络连接或数据源设置');
+          return;
+        }
 
         final List data = json.decode(resp.body);
         if (resp.body.isEmpty || resp.body == '[]' || data.isEmpty) {
-          setState(() => errorMsg = '未查询到车次,请尝试:\n1.前往12306查询今日是否运行\n2.切换数据源查询');
+          setState(() => errorMsg = '未查询到车次,请尝试:\n1.前往12306查询今日是否运行\n2.切换数据源查询\n当前数据源: ${settings.dataSource.toString().split('.').last}');
           return;
         }
 
@@ -383,47 +409,50 @@ class _HomePageState extends State<HomePage> {
           return;
         }
 
-        // 2. 找到最新的记录日期
-        DateTime? latestDate;
-        for (var item in filteredData) {
-          final emuDate = item['date']?.toString().trim() ?? '';
-          if (emuDate.isEmpty) continue;
+        if (settings.dataSource == TrainDataSource.railRe) {
+          DateTime? latestDate;
+          for (var item in filteredData) {
+            final emuDate = item['date']?.toString().trim() ?? '';
+            if (emuDate.isEmpty) continue;
 
-          DateTime? emuDateOnly;
-          if (emuDate.contains(' ')) {
-            final datePart = emuDate.split(' ')[0];
-            emuDateOnly = DateTime.parse(datePart);
-          } else {
-            emuDateOnly = DateTime.parse(emuDate);
+            DateTime? emuDateOnly;
+            if (emuDate.contains(' ')) {
+              final datePart = emuDate.split(' ')[0];
+              emuDateOnly = DateTime.parse(datePart);
+            } else {
+              emuDateOnly = DateTime.parse(emuDate);
+            }
+
+            if (latestDate == null || emuDateOnly.isAfter(latestDate)) {
+              latestDate = emuDateOnly;
+            }
           }
 
-          if (latestDate == null || emuDateOnly.isAfter(latestDate)) {
-            latestDate = emuDateOnly;
+          if (latestDate == null) {
+            setState(() {
+              isLoading = false;
+              errorMsg = '无法解析车次日期';
+            });
+            return;
           }
-        }
 
-        if (latestDate == null) {
-          setState(() {
-            isLoading = false;
-            errorMsg = '无法解析车次日期';
-          });
-          return;
-        }
+          // 3. 检查最新日期是否在2天内
+          final now = DateTime.now();
+          final currentDateOnly = DateTime(now.year, now.month, now.day);
+          final latestDateAtMidnight = DateTime(
+              latestDate.year, latestDate.month, latestDate.day);
 
-        // 3. 检查最新日期是否在2天内
-        final now = DateTime.now();
-        final currentDateOnly = DateTime(now.year, now.month, now.day);
-        final latestDateAtMidnight = DateTime(latestDate.year, latestDate.month, latestDate.day);
+          final difference = latestDateAtMidnight.difference(currentDateOnly);
+          final absDays = difference.inDays.abs();
 
-        final difference = latestDateAtMidnight.difference(currentDateOnly);
-        final absDays = difference.inDays.abs();
-
-        if (absDays > 2) {
-          setState(() {
-            isLoading = false;
-            errorMsg = '车次过期! 可能调图后删除列车\n或者上游API无数据!\n可切换第二数据源尝试\n或者是车次有误';
-          });
-          return;
+          if (absDays > 2) {
+            setState(() {
+              isLoading = false;
+              errorMsg =
+              '车次过期! 可能调图后删除列车\n或者上游API无数据!\n可切换第二数据源尝试\n或者是车次有误';
+            });
+            return;
+          }
         }
 
         // 4. 重联判断（使用原始过滤后的数据）
