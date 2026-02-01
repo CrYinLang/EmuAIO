@@ -167,8 +167,9 @@ class AboutPage extends StatelessWidget {
     return FutureBuilder<Map<String, dynamic>?>(
       future: _fetchVersionInfo(),
       builder: (context, snapshot) {
-        String baseText = '公告：新升级到此版本请立即点击右下角设置15次以重置图标包的问题,或者清除软件数据';
+        const String baseText = '提示：新升级到此版本\n请立即连续点击右下角设置15次\n以重置图标包的问题,或者清除软件数据';
         String additionalText = '';
+        bool hasNewVersion = false;
 
         if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
           final versionInfo = snapshot.data!;
@@ -182,7 +183,8 @@ class AboutPage extends StatelessWidget {
               final currentBuildNum = int.tryParse(currentBuild) ?? 0;
 
               if (remoteBuildNum > currentBuildNum) {
-                additionalText = '\n发现新版本${versionInfo['Version']}，更新内容：${versionInfo['describe'] ?? '修复了一些问题'}';
+                hasNewVersion = true;
+                additionalText = '\n\n发现新版本${versionInfo['Version']}，更新内容：\n${versionInfo['describe'] ?? '修复了一些问题'}';
               }
             } catch (e) {
               // 忽略版本号解析错误
@@ -190,32 +192,38 @@ class AboutPage extends StatelessWidget {
           }
 
           // 添加远程公告
-          final remoteAnnouncement = versionInfo['Announcement']?.toString() ?? '';
-          if (remoteAnnouncement.isNotEmpty && additionalText.isEmpty) {
-            additionalText = '$remoteAnnouncement';
+          if (!hasNewVersion) {
+            final remoteAnnouncement = versionInfo['Announcement']?.toString() ?? '';
+            if (remoteAnnouncement.isNotEmpty) {
+              additionalText = '\n\n$remoteAnnouncement';
+            }
           }
         }
 
-        // 恢复红色容器样式
+        // 根据是否有新版本选择颜色
+        final isWarning = hasNewVersion;
+
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isDark
-                ? theme.colorScheme.errorContainer
-                : Color(0xFFFFEBEE), // 浅红色背景
+            color: isWarning
+                ? (isDark ? Color(0xFF330E0E) : Color(0xFFFFEBEE))
+                : (isDark ? Color(0xFF0D1B2A) : Color(0xFFE3F2FD)),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isDark
-                  ? theme.colorScheme.error
-                  : Color(0xFFF44336), // 红色边框
+              color: isWarning
+                  ? (isDark ? Color(0xFF8C1D18) : Color(0xFFF44336))
+                  : (isDark ? Color(0xFF1E3A5F) : Color(0xFF2196F3)),
               width: 1,
             ),
           ),
           child: Row(
             children: [
               Icon(
-                Icons.warning_amber,
-                color: isDark ? theme.colorScheme.onErrorContainer : Color(0xFFD32F2F),
+                isWarning ? Icons.warning_amber : Icons.info_outline,
+                color: isWarning
+                    ? (isDark ? Color(0xFFFAA9A3) : Color(0xFFD32F2F))
+                    : (isDark ? Color(0xFF90CAF9) : Color(0xFF1565C0)),
                 size: 20,
               ),
               const SizedBox(width: 12),
@@ -224,7 +232,9 @@ class AboutPage extends StatelessWidget {
                   baseText + additionalText,
                   style: TextStyle(
                     fontSize: 14,
-                    color: isDark ? theme.colorScheme.onErrorContainer : Color(0xFFB71C1C),
+                    color: isWarning
+                        ? (isDark ? Color(0xFFFAA9A3) : Color(0xFFB71C1C))
+                        : (isDark ? Color(0xFF90CAF9) : Color(0xFF0D47A1)),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
