@@ -104,14 +104,16 @@ class _IconPackManagerState extends State<IconPackManager> {
       metadata['name'] = '自定义图标包';
       metadata['describe'] = '从ZIP文件自动生成';
       metadata['author'] = '用户上传';
+      metadata['version'] = '1.0.0';
     }
 
     metadata['iconCount'] = manifest.length;
     metadata['name'] = (metadata['name']?.toString().trim().isNotEmpty == true)
         ? metadata['name']
-        : '未命名图标包';
+        : '';
     metadata['describe'] ??= '';
-    metadata['author'] ??= '未知作者';
+    metadata['author'] ??= '';
+    metadata['version'] ??= '1.0.0';
 
     return (manifest, metadata);
   }
@@ -125,12 +127,13 @@ class _IconPackManagerState extends State<IconPackManager> {
         'name': _safeExtractString(manifestJson['name']),
         'describe': _safeExtractString(manifestJson['describe'] ?? manifestJson['description']),
         'author': _safeExtractString(manifestJson['author']),
+        'version': _safeExtractString(manifestJson['version']),
       };
 
       final manifest = <String, String>{};
       for (final entry in manifestJson.entries) {
         final key = entry.key;
-        if (!['name', 'describe', 'description', 'author'].contains(key)) {
+        if (!['name', 'describe', 'description', 'author', 'version'].contains(key)) {
           final value = _safeExtractString(entry.value);
           if (value.isNotEmpty) manifest[key] = value;
         }
@@ -286,19 +289,51 @@ class _IconPackManagerState extends State<IconPackManager> {
       );
     }
 
+    // 尝试 icon.png
     final iconFile = File('${pack.path}/icon.png');
-    if (!iconFile.existsSync()) return _buildFallbackIcon();
-
-    try {
-      if (iconFile.statSync().size == 0) return _buildFallbackIcon();
-      return Image.file(
-        iconFile,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildFallbackIcon(),
-      );
-    } catch (e) {
-      return _buildFallbackIcon();
+    if (iconFile.existsSync()) {
+      if (iconFile.statSync().size > 0) {
+        return Image.file(
+          iconFile,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            final trainIcon = File('${pack.path}/train/CR400AF-SZE.png');
+            if (trainIcon.existsSync()) {
+              try {
+                if (trainIcon.statSync().size > 0) {
+                  return Image.file(
+                    trainIcon,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => _buildFallbackIcon(),
+                  );
+                }
+              } catch (e) {
+                return _buildFallbackIcon();
+              }
+            }
+            return _buildFallbackIcon();
+          },
+        );
+      }
     }
+
+    // 尝试 train/CR400AF-SZE.png
+    final trainIcon = File('${pack.path}/train/CR400AF-SZE.png');
+    if (trainIcon.existsSync()) {
+      try {
+        if (trainIcon.statSync().size > 0) {
+          return Image.file(
+            trainIcon,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => _buildFallbackIcon(),
+          );
+        }
+      } catch (e) {
+        return _buildFallbackIcon();
+      }
+    }
+
+    return _buildFallbackIcon();
   }
 
   Widget _buildFallbackIcon() {
@@ -420,21 +455,56 @@ class _IconPackManagerState extends State<IconPackManager> {
     );
   }
 
+// 修改 _buildPackMetadata 方法
   Widget _buildPackMetadata(IconPackInfo pack) {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 4,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // 第一行：作者信息
         if (pack.metadata['author'] != null && pack.metadata['author']!.toString().isNotEmpty)
           Text(
             '作者: ${pack.metadata['author']}',
-            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withAlpha(128)),
+            style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(128)
+            ),
           ),
-        if (pack.iconCount > 0)
-          Text(
-            '${pack.iconCount} 个图标',
-            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withAlpha(128)),
-          ),
+
+        // 第二行：版本信息和图标数量
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            // 版本信息
+            Row(
+              children: [
+                Text(
+                  'v${pack.metadata['version'] ?? '1.0'}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurface.withAlpha(128),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+            ),
+
+            // 图标数量
+            if (pack.iconCount > 0)
+              Row(
+                children: [
+                  const Icon(Icons.photo_outlined, size: 12),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${pack.iconCount}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurface.withAlpha(128),
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
       ],
     );
   }
