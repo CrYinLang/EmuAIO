@@ -317,7 +317,6 @@ class _IconPackManagerState extends State<IconPackManager> {
       }
     }
 
-    // 尝试 train/CR400AF-SZE.png
     final trainIcon = File('${pack.path}/train/CR400AF-SZE.png');
     if (trainIcon.existsSync()) {
       try {
