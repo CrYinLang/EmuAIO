@@ -292,31 +292,37 @@ class _IconPackManagerState extends State<IconPackManager> {
     // 尝试 icon.png
     final iconFile = File('${pack.path}/icon.png');
     if (iconFile.existsSync()) {
-      if (iconFile.statSync().size > 0) {
-        return Image.file(
-          iconFile,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            final trainIcon = File('${pack.path}/train/CR400AF-SZE.png');
-            if (trainIcon.existsSync()) {
-              try {
-                if (trainIcon.statSync().size > 0) {
-                  return Image.file(
-                    trainIcon,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => _buildFallbackIcon(),
-                  );
+      try {
+        if (iconFile.statSync().size > 0) {
+          return Image.file(
+            iconFile,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              // icon.png 加载失败，尝试 train/CR400AF-SZE.png
+              final trainIcon = File('${pack.path}/train/CR400AF-SZE.png');
+              if (trainIcon.existsSync()) {
+                try {
+                  if (trainIcon.statSync().size > 0) {
+                    return Image.file(
+                      trainIcon,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => _buildFallbackIcon(),
+                    );
+                  }
+                } catch (e) {
+                  return _buildFallbackIcon();
                 }
-              } catch (e) {
-                return _buildFallbackIcon();
               }
-            }
-            return _buildFallbackIcon();
-          },
-        );
+              return _buildFallbackIcon();
+            },
+          );
+        }
+      } catch (e) {
+        // icon.png 有问题，尝试 train/CR400AF-SZE.png
       }
     }
 
+    // 尝试 train/CR400AF-SZE.png
     final trainIcon = File('${pack.path}/train/CR400AF-SZE.png');
     if (trainIcon.existsSync()) {
       try {
