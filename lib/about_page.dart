@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'main.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'dart:math';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
@@ -165,9 +163,9 @@ class AboutPage extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return FutureBuilder<Map<String, dynamic>?>(
-      future: _fetchVersionInfo(),
+      future: AppConstants.fetchVersionInfo(),
       builder: (context, snapshot) {
-        const String baseText = '提示：新升级到此版本\n请立即连续点击右下角设置15次\n以重置图标包的问题,或者清除软件数据';
+        const String baseText = '提示：不卸载旧版本升级到此版本\n请立即连续点击右下角设置15次\n以重置图标包的问题,或者清除软件数据';
         String additionalText = '';
         bool hasNewVersion = false;
 
@@ -244,21 +242,6 @@ class AboutPage extends StatelessWidget {
         );
       },
     );
-  }
-
-  Future<Map<String, dynamic>?> _fetchVersionInfo() async {
-    try {
-      final response = await http.get(
-          Uri.parse('https://gitee.com/CrYinLang/emu-aio/raw/master/version.json')
-      ).timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      }
-    } catch (e) {
-      debugPrint('获取版本信息失败: $e');
-    }
-    return null;
   }
 
   Widget _buildDataSourceSection(BuildContext context) {

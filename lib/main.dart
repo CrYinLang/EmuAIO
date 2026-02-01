@@ -2,9 +2,11 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
+import 'package:path_provider/path_provider.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'dart:io';
+import 'package:http/http.dart' as http;
 
 import 'train_model.dart';
 import 'color_theme.dart';
@@ -17,7 +19,21 @@ class AppConstants {
   static const String lastUpdate = '26-01-31-12-10';
   static const String version = '2.2.0.0';
   static const String build = '2200';
-//记得 android\app\src\build.gradle.kts 也要改
+
+  static Future<Map<String, dynamic>?> fetchVersionInfo() async {
+    try {
+      final response = await http.get(
+          Uri.parse('https://gitee.com/CrYinLang/emu-aio/raw/master/version.json')
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+    } catch (e) {
+      debugPrint('获取版本信息失败: $e');
+    }
+    return null;
+  }
 }
 
 void main() async {
@@ -776,10 +792,46 @@ class AppSettings extends ChangeNotifier {
   Future<void> resetAllSettings() async {
     _isLoading = true;
     notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-    _isLoading = false;
-    notifyListeners();
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+
+      final Directory appDocDir = Directory(
+          (await getApplicationDocumentsDirectory()).path
+      );
+
+      // 如果文档目录存在，删除其中的所有文件和子目录
+      if (await appDocDir.exists()) {
+        final files = await appDocDir.list().toList();
+        for (final file in files) {
+          if (file is File) {
+              await file.delete();
+          } else if (file is Directory) {
+              await file.delete(recursive: true);
+          }
+        }
+      }
+
+      final Directory tempDir = Directory(
+          (await getTemporaryDirectory()).path
+      );
+
+      if (await tempDir.exists()) {
+        final tempFiles = await tempDir.list().toList();
+        for (final file in tempFiles) {
+          if (file is File) {
+              await file.delete();
+          } else if (file is Directory) {
+              await file.delete(recursive: true);
+          }
+        }
+      }
+
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   // ==================== 导出设置 ====================

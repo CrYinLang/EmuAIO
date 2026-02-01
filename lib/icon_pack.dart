@@ -75,6 +75,8 @@ class _IconPackManagerState extends State<IconPackManager> {
     } catch (e) {
       _showError('加载失败: $e');
     } finally {
+      await FilePicker.platform.clearTemporaryFiles();
+
       if (mounted) setState(() => isLoading = false);
     }
   }
