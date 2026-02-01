@@ -108,7 +108,7 @@ class UpdateResultDialog extends StatelessWidget {
 
       if (remoteBuild > currentBuild) {
         hasUpdate = true;
-        resultMessage = '发现新版本 ${AppConstants.version}-->$newVersion\n\n更新时间: $updateTime\n\n更新介绍:\n$describeText\n\n请选择下载链接：';
+        resultMessage = '发现新版本 ${AppConstants.version}-->$newVersion\n\n更新时间: $updateTime\n\n更新介绍:\n$describeText\n\n请选择下载链接';
         resultColor = AppColors.matchMedium;
         resultIcon = Icons.system_update;
       } else {
