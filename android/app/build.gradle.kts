@@ -1,3 +1,7 @@
+import java.util.Properties
+import java.io.FileInputStream
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -5,6 +9,11 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
 android {
     namespace = "com.cryinlang.emuaio"
     compileSdk = flutter.compileSdkVersion

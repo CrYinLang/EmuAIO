@@ -16,7 +16,7 @@ import 'about_page.dart';
 import 'settings_page.dart';
 
 class AppConstants {
-  static const String lastUpdate = '26-01-31-12-10';
+  static const String lastUpdate = '26-02-01-12-50';
   static const String version = '2.2.0.0';
   static const String build = '2200';
 
