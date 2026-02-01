@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'main.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'dart:math';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
@@ -22,6 +24,8 @@ class AboutPage extends StatelessWidget {
             _buildHeader(context),
             const SizedBox(height: 28),
             _buildVersionInfo(context),
+            const SizedBox(height: 28),
+            _buildAnnouncementBar(context),
             const SizedBox(height: 28),
             _buildDataSourceSection(context),
             const SizedBox(height: 24),
@@ -154,6 +158,97 @@ class AboutPage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildAnnouncementBar(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: _fetchVersionInfo(),
+      builder: (context, snapshot) {
+        String baseText = '公告：新升级到此版本请立即点击右下角设置15次以重置图标包的问题,或者清除软件数据';
+        String additionalText = '';
+
+        if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
+          final versionInfo = snapshot.data!;
+          final remoteBuild = versionInfo['Build']?.toString() ?? '';
+          final currentBuild = AppConstants.build;
+
+          // 版本对比
+          if (remoteBuild.isNotEmpty && currentBuild.isNotEmpty) {
+            try {
+              final remoteBuildNum = int.tryParse(remoteBuild) ?? 0;
+              final currentBuildNum = int.tryParse(currentBuild) ?? 0;
+
+              if (remoteBuildNum > currentBuildNum) {
+                additionalText = '\n发现新版本${versionInfo['Version']}，更新内容：${versionInfo['describe'] ?? '修复了一些问题'}';
+              }
+            } catch (e) {
+              // 忽略版本号解析错误
+            }
+          }
+
+          // 添加远程公告
+          final remoteAnnouncement = versionInfo['Announcement']?.toString() ?? '';
+          if (remoteAnnouncement.isNotEmpty && additionalText.isEmpty) {
+            additionalText = '$remoteAnnouncement';
+          }
+        }
+
+        // 恢复红色容器样式
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark
+                ? theme.colorScheme.errorContainer
+                : Color(0xFFFFEBEE), // 浅红色背景
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark
+                  ? theme.colorScheme.error
+                  : Color(0xFFF44336), // 红色边框
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.warning_amber,
+                color: isDark ? theme.colorScheme.onErrorContainer : Color(0xFFD32F2F),
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  baseText + additionalText,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDark ? theme.colorScheme.onErrorContainer : Color(0xFFB71C1C),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>?> _fetchVersionInfo() async {
+    try {
+      final response = await http.get(
+          Uri.parse('https://gitee.com/CrYinLang/emu-aio/raw/master/version.json')
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+    } catch (e) {
+      debugPrint('获取版本信息失败: $e');
+    }
+    return null;
   }
 
   Widget _buildDataSourceSection(BuildContext context) {

@@ -17,7 +17,7 @@ class AppConstants {
   static const String lastUpdate = '26-01-31-12-10';
   static const String version = '2.2.0.0';
   static const String build = '2200';
-  //记得 android\app\src\build.gradle.kts 也要改
+//记得 android\app\src\build.gradle.kts 也要改
 }
 
 void main() async {
@@ -776,10 +776,10 @@ class AppSettings extends ChangeNotifier {
   Future<void> resetAllSettings() async {
     _isLoading = true;
     notifyListeners();
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
-      _isLoading = false;
-      notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    _isLoading = false;
+    notifyListeners();
   }
 
   // ==================== 导出设置 ====================

@@ -17,215 +17,236 @@ class IconPackManager extends StatefulWidget {
 }
 
 class _IconPackManagerState extends State<IconPackManager> {
+  static const Set<String> _systemKeys = {
+    'name',
+    'describe',
+    'description',
+    'author',
+    'version',
+    'uuid',
+    '提示',
+    '如无特殊',
+  };
+
   bool isLoading = false;
 
-  Future<void> _selectAndLoadIconPack() async {
-    if (!mounted) return;
-    setState(() => isLoading = true);
+  // UUID 校验
+  bool _isValidUuid(String uuid) {
+    final reg = RegExp(
+      r'^[0-9a-fA-F]{8}-'
+      r'[0-9a-fA-F]{4}-'
+      r'[1-5][0-9a-fA-F]{3}-'
+      r'[89abAB][0-9a-fA-F]{3}-'
+      r'[0-9a-fA-F]{12}$',
+    );
+    return reg.hasMatch(uuid);
+  }
 
+  // 版本比较
+  int _compareVersion(String a, String b) {
+    List<int> pa = a.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    List<int> pb = b.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    int len = pa.length > pb.length ? pa.length : pb.length;
+    while (pa.length < len) {
+      pa.add(0);
+    }
+    while (pb.length < len) {
+      pb.add(0);
+    }
+    for (int i = 0; i < len; i++) {
+      if (pa[i] > pb[i]) return 1;
+      if (pa[i] < pb[i]) return -1;
+    }
+    return 0;
+  }
+
+  // 选择 ZIP
+  Future<void> _selectAndLoadIconPack() async {
+    setState(() => isLoading = true);
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['zip'],
         allowMultiple: false,
       );
-
-      if (mounted) {
-        if (result != null && result.files.isNotEmpty && result.files.single.path != null) {
-          await _loadIconPack(File(result.files.single.path!));
-        } else {
-          setState(() => isLoading = false);
-        }
+      if (result?.files.single.path != null) {
+        await _loadIconPack(File(result!.files.single.path!));
       }
     } catch (e) {
-      if (mounted) {
-        _showError('加载图标包失败: $e');
-        setState(() => isLoading = false);
-      }
-    }
-  }
-
-  Future<void> _loadIconPack(File zipFile) async {
-    if (!mounted) return;
-    setState(() => isLoading = true);
-
-    try {
-      final archive = ZipDecoder().decodeBytes(await zipFile.readAsBytes());
-      final iconPackDir = await _createIconPackDirectory();
-
-      final result = await _processArchive(archive, iconPackDir, zipFile);
-      await _validateAndSaveIconPack(result.$1, result.$2, iconPackDir, zipFile);
-    } catch (e) {
-      _showError('加载图标包失败: $e');
+      _showError('加载失败: $e');
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
   }
 
-  Future<Directory> _createIconPackDirectory() async {
+  // ===== 核心安装流程（原子）=====
+  Future<void> _loadIconPack(File zipFile) async {
+    final archive = ZipDecoder().decodeBytes(await zipFile.readAsBytes());
+
+    ArchiveFile? manifestFile;
+    for (final f in archive) {
+      if (f.name.toLowerCase() == 'manifest.json') manifestFile = f;
+    }
+    if (manifestFile == null) throw Exception('缺少 manifest.json');
+
+    final parsed = await _parseManifest(manifestFile);
+    final uuid = parsed.$2['uuid'];
+
+    final tempDir = await _createTempInstallDir(uuid);
+    final result = await _processArchive(archive, tempDir);
+
+    await _validateAndAtomicInstall(result.$1, result.$2, tempDir, zipFile);
+  }
+
+  // 临时安装目录
+  Future<Directory> _createTempInstallDir(String uuid) async {
     final appDocDir = await getApplicationDocumentsDirectory();
-    final iconPackDir = Directory('${appDocDir.path}/icon_packs/${DateTime.now().millisecondsSinceEpoch}');
-    if (!await iconPackDir.exists()) await iconPackDir.create(recursive: true);
-    return iconPackDir;
+    final dir = Directory(
+        '${appDocDir.path}/icon_packs/_install_${uuid}_${DateTime.now().millisecondsSinceEpoch}');
+    await dir.create(recursive: true);
+    return dir;
   }
 
-  Future<(Map<String, String>, Map<String, dynamic>)> _processArchive(
-      Archive archive,
-      Directory iconPackDir,
-      File zipFile
-      ) async {
-    Map<String, String> manifest = {};
-    Map<String, dynamic> metadata = {};
-    bool hasTrainFolder = false;
-    List<String> pngFiles = [];
-
-    for (final file in archive) {
-      if (file.name.isEmpty || file.name.endsWith('/')) continue;
-      final lowerName = file.name.toLowerCase();
-
-      if (lowerName == 'manifest.json') {
-        final result = await _parseManifest(file);
-        manifest = result.$1;
-        metadata.addAll(result.$2);
-      } else if (lowerName == 'icon.png') {
-        await _saveArchiveFile(file, iconPackDir);
-      } else if (lowerName.startsWith('train/')) {
-        hasTrainFolder = true;
-        if (lowerName.endsWith('.png')) pngFiles.add(file.name);
-        await _saveArchiveFile(file, iconPackDir);
-      }
-    }
-
-    if (!hasTrainFolder) throw Exception('ZIP文件中未找到 train 文件夹');
-    if (pngFiles.isEmpty) throw Exception('train 文件夹中未找到 PNG 图标文件');
-
-    if (manifest.isEmpty) {
-      manifest = await _generateManifestFromFiles(iconPackDir);
-      metadata['name'] = '自定义图标包';
-      metadata['describe'] = '从ZIP文件自动生成';
-      metadata['author'] = '用户上传';
-      metadata['version'] = '1.0.0';
-    }
-
-    metadata['iconCount'] = manifest.length;
-    metadata['name'] = (metadata['name']?.toString().trim().isNotEmpty == true)
-        ? metadata['name']
-        : '';
-    metadata['describe'] ??= '';
-    metadata['author'] ??= '';
-    metadata['version'] ??= '1.0.0';
-
-    return (manifest, metadata);
-  }
-
-  Future<(Map<String, String>, Map<String, dynamic>)> _parseManifest(ArchiveFile file) async {
-    try {
-      String manifestStr = utf8.decode(file.content, allowMalformed: false);
-      final manifestJson = json.decode(manifestStr) as Map<String, dynamic>;
-
-      final metadata = <String, dynamic>{
-        'name': _safeExtractString(manifestJson['name']),
-        'describe': _safeExtractString(manifestJson['describe'] ?? manifestJson['description']),
-        'author': _safeExtractString(manifestJson['author']),
-        'version': _safeExtractString(manifestJson['version']),
-      };
-
-      final manifest = <String, String>{};
-      for (final entry in manifestJson.entries) {
-        final key = entry.key;
-        if (!['name', 'describe', 'description', 'author', 'version'].contains(key)) {
-          final value = _safeExtractString(entry.value);
-          if (value.isNotEmpty) manifest[key] = value;
-        }
-      }
-
-      return (manifest, metadata);
-    } catch (e) {
-      throw Exception('解析 manifest.json 失败: $e');
-    }
-  }
-
-  String _safeExtractString(dynamic value) {
-    if (value == null) return '';
-    final str = value.toString().trim();
-    if (str.isEmpty) return '';
-
-    try {
-      final bytes = utf8.encode(str);
-      return utf8.decode(bytes, allowMalformed: false);
-    } catch (e) {
-      return str.replaceAll(RegExp(r'[^\x00-\x7F\u4e00-\u9fff]'), '');
-    }
-  }
-
-  Future<void> _saveArchiveFile(ArchiveFile file, Directory iconPackDir) async {
-    final outputFile = File('${iconPackDir.path}/${file.name}');
-    if (!await outputFile.parent.exists()) {
-      await outputFile.parent.create(recursive: true);
-    }
-    if (file.isFile) await outputFile.writeAsBytes(file.content);
-  }
-
-  Future<Map<String, String>> _generateManifestFromFiles(Directory iconPackDir) async {
-    final manifest = <String, String>{};
-    final trainDir = Directory('${iconPackDir.path}/train');
-
-    if (await trainDir.exists()) {
-      await for (final file in trainDir.list()) {
-        if (file is File && file.path.toLowerCase().endsWith('.png')) {
-          final fileName = file.uri.pathSegments.last.replaceAll(RegExp(r'\.png$', caseSensitive: false), '');
-          if (fileName.isNotEmpty) manifest[fileName] = fileName;
-        }
-      }
-    }
-    return manifest;
-  }
-
-  Future<void> _validateAndSaveIconPack(
+  Future<void> _validateAndAtomicInstall(
       Map<String, String> manifest,
       Map<String, dynamic> metadata,
-      Directory iconPackDir,
-      File zipFile
+      Directory tempDir,
+      File zipFile,
       ) async {
-    final trainDir = Directory('${iconPackDir.path}/train');
-    if (!await trainDir.exists()) throw Exception('图标包中未找到有效的PNG图标文件');
+    final appDocDir = await getApplicationDocumentsDirectory();
+    final finalDir = Directory('${appDocDir.path}/icon_packs/${metadata['uuid']}');
 
-    int pngCount = 0;
-    await for (final file in trainDir.list()) {
-      if (file is File && file.path.toLowerCase().endsWith('.png')) {
-        pngCount++;
-      }
-    }
+    // PNG 校验
+    final trainDir = Directory('${tempDir.path}/train');
+    if (!await trainDir.exists()) throw Exception('未找到PNG');
 
-    if (pngCount == 0) throw Exception('图标包中未找到有效的PNG图标文件');
-
-    String packName = metadata['name']?.toString().trim() ?? '未命名图标包';
-    if (packName.isEmpty) {
-      final zipFileName = zipFile.uri.pathSegments.last.replaceAll('.zip', '');
-      packName = zipFileName.isNotEmpty ? _safeExtractString(zipFileName) : '自定义图标包_${DateTime.now().millisecondsSinceEpoch}';
-    }
-
-    metadata.addAll({
-      'loadTime': DateTime.now().toIso8601String(),
-      'path': iconPackDir.path,
-      'zipFile': zipFile.uri.pathSegments.last,
-    });
-
+    // 版本检测
     if (!mounted) return;
-
     final settings = Provider.of<AppSettings>(context, listen: false);
+    final existing = settings.availableIconPacks
+        .where((p) => p.metadata['uuid'] == metadata['uuid'])
+        .toList();
+
+    if (existing.isNotEmpty) {
+      final old = existing.first;
+      int cmp = _compareVersion(metadata['version'], old.metadata['version']);
+      bool ok = await _confirmVersionDialog(
+          cmp, old.metadata['version'], metadata['version']);
+      if (!ok) {
+        await tempDir.delete(recursive: true);
+        return;
+      }
+      await settings.deleteIconPack(old.name);
+      if (await finalDir.exists()) await finalDir.delete(recursive: true);
+    }
+
+    try {
+      await tempDir.rename(finalDir.path);
+    } catch (e) {
+      await tempDir.delete(recursive: true);
+      rethrow;
+    }
+
     await settings.addIconPack(
-      name: packName,
-      path: iconPackDir.path,
+      name: metadata['name'],
+      path: finalDir.path,
       manifest: manifest,
       metadata: metadata,
     );
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('图标包 "$packName" 已成功导入并应用'), duration: const Duration(seconds: 2)),
-      );
+          SnackBar(content: Text('图标包 ${metadata['name']} 已安装')));
     }
+  }
+
+  Future<bool> _confirmVersionDialog(int cmp, oldV, newV) async {
+    String title, content;
+    if (cmp > 0) {
+      title = '发现新版本';
+      content = '$oldV → $newV 更新?';
+    } else if (cmp == 0) {
+      title = '重复版本';
+      content = '版本相同，覆盖?';
+    } else {
+      title = '降级警告';
+      content = '$oldV > $newV 确认降级?';
+    }
+
+    return await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(title),
+        content: Text(content),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('取消')),
+          ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('确定')),
+        ],
+      ),
+    ) ??
+        false;
+  }
+
+  // 解压处理
+  Future<(Map<String, String>, Map<String, dynamic>)> _processArchive(
+      Archive archive,
+      Directory dir,
+      ) async {
+    Map<String, String> manifest = {};
+    Map<String, dynamic> metadata = {};
+    bool hasTrain = false;
+
+    for (final f in archive) {
+      if (f.name.endsWith('/')) continue;
+      final lower = f.name.toLowerCase();
+
+      if (lower == 'manifest.json') {
+        final parsed = await _parseManifest(f);
+        manifest = parsed.$1;
+        metadata = parsed.$2;
+      } else if (lower.startsWith('train/') && lower.endsWith('.png')) {
+        hasTrain = true;
+        await _saveFile(f, dir);
+      } else if (lower == 'icon.png') {
+        await _saveFile(f, dir);
+      }
+    }
+
+    if (!hasTrain) throw Exception('未找到 train PNG');
+
+    metadata['iconCount'] = manifest.length;
+    return (manifest, metadata);
+  }
+
+  Future<void> _saveFile(ArchiveFile f, Directory dir) async {
+    final out = File('${dir.path}/${f.name}');
+    await out.parent.create(recursive: true);
+    await out.writeAsBytes(f.content);
+  }
+
+  Future<(Map<String, String>, Map<String, dynamic>)> _parseManifest(
+      ArchiveFile f) async {
+    final jsonMap = json.decode(utf8.decode(f.content));
+    final meta = {
+      'uuid': jsonMap['uuid'],
+      'name': jsonMap['name'],
+      'author': jsonMap['author'],
+      'version': jsonMap['version'],
+      'describe': jsonMap['describe'],
+    };
+    if (!_isValidUuid(meta['uuid'])) throw Exception('UUID 非法');
+
+    Map<String, String> m = {};
+    for (final e in jsonMap.entries) {
+      if (!_systemKeys.contains(e.key)) {
+        m[e.key] = e.value.toString();
+      }
+    }
+    return (m, meta);
   }
 
   Widget _buildEmptyState() {
@@ -306,7 +327,8 @@ class _IconPackManagerState extends State<IconPackManager> {
                     return Image.file(
                       trainIcon,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => _buildFallbackIcon(),
+                      errorBuilder: (context, error, stackTrace) =>
+                          _buildFallbackIcon(),
                     );
                   }
                 } catch (e) {
@@ -360,13 +382,13 @@ class _IconPackManagerState extends State<IconPackManager> {
       }
 
       if (mounted) {
-        Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('已切换到 ${pack.metadata['name'] ?? pack.displayName}'),
             duration: const Duration(seconds: 2),
           ),
         );
+        setState(() {}); // 刷新UI
       }
     } catch (e) {
       if (mounted) _showError('切换图标包失败: $e');
@@ -383,7 +405,9 @@ class _IconPackManagerState extends State<IconPackManager> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: isCurrent ? Theme.of(context).colorScheme.primary : Colors.transparent,
+          color: isCurrent
+              ? Theme.of(context).colorScheme.primary
+              : Colors.transparent,
           width: 2,
         ),
       ),
@@ -427,7 +451,8 @@ class _IconPackManagerState extends State<IconPackManager> {
             if (isCurrent) _buildCurrentBadge(),
           ],
         ),
-        if (pack.metadata['describe'] != null && pack.metadata['describe']!.toString().isNotEmpty)
+        if (pack.metadata['describe'] != null &&
+            pack.metadata['describe']!.toString().isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Text(
@@ -455,24 +480,25 @@ class _IconPackManagerState extends State<IconPackManager> {
       ),
       child: const Text(
         '使用中',
-        style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+        style: TextStyle(
+            fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
       ),
     );
   }
 
-// 修改 _buildPackMetadata 方法
+  // 修改 _buildPackMetadata 方法
   Widget _buildPackMetadata(IconPackInfo pack) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // 第一行：作者信息
-        if (pack.metadata['author'] != null && pack.metadata['author']!.toString().isNotEmpty)
+        if (pack.metadata['author'] != null &&
+            pack.metadata['author']!.toString().isNotEmpty)
           Text(
             '作者: ${pack.metadata['author']}',
             style: TextStyle(
                 fontSize: 12,
-                color: Theme.of(context).colorScheme.onSurface.withAlpha(128)
-            ),
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(128)),
           ),
 
         // 第二行：版本信息和图标数量
@@ -522,17 +548,18 @@ class _IconPackManagerState extends State<IconPackManager> {
     );
   }
 
-  Future<void> _showDeleteDialog(IconPackInfo pack, AppSettings settings) async {
+  Future<void> _showDeleteDialog(
+      IconPackInfo pack, AppSettings settings) async {
     final bool? result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('确认删除'),
-        content: Text('确定要删除图标包 "${pack.metadata['name'] ?? pack.displayName}" 吗？此操作不可恢复。'),
+        content: Text(
+            '确定要删除图标包 "${pack.metadata['name'] ?? pack.displayName}" 吗？此操作不可恢复。'),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('取消')
-          ),
+              child: const Text('取消')),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -548,10 +575,12 @@ class _IconPackManagerState extends State<IconPackManager> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('图标包 "${pack.metadata['name'] ?? pack.displayName}" 已删除'),
+              content: Text(
+                  '图标包 "${pack.metadata['name'] ?? pack.displayName}" 已删除'),
               duration: const Duration(seconds: 2),
             ),
           );
+          setState(() {}); // 刷新UI
         }
       } catch (e) {
         if (mounted) _showError('删除图标包失败: $e');
@@ -559,79 +588,78 @@ class _IconPackManagerState extends State<IconPackManager> {
     }
   }
 
-  void _showError(String message) {
-    if (!mounted) return;
+  void _showError(String m) {
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (_) =>
+            AlertDialog(title: const Text('错误'), content: Text(m)),
+      );
+    }
+  }
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('错误'),
-        content: Text(message),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('确定')
-          )
-        ],
+  Widget _buildIconPackList(BuildContext context) {
+    return Consumer<AppSettings>(
+      builder: (context, settings, child) {
+        final packs = settings.availableIconPacks;
+        final currentPackName = settings.currentIconPack;
+
+        if (packs.isEmpty) {
+          return _buildEmptyState();
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          itemCount: packs.length,
+          itemBuilder: (context, index) {
+            final pack = packs[index];
+            final isCurrent = currentPackName == pack.name;
+            return _buildPackItem(pack, isCurrent, settings);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildImportButton() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: ElevatedButton.icon(
+        onPressed: isLoading ? null : _selectAndLoadIconPack,
+        icon: isLoading
+            ? const SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        )
+            : const Icon(Icons.file_upload_outlined),
+        label: Text(isLoading ? '导入中...' : '导入图标包 (ZIP)'),
+        style: ElevatedButton.styleFrom(
+          minimumSize: const Size(double.infinity, 50),
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final settings = Provider.of<AppSettings>(context);
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-
-    return Dialog(
-      child: Container(
-        width: screenWidth * 0.9,
-        height: screenHeight * 0.8,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              children: const [
-                Icon(Icons.photo_library, size: 24),
-                SizedBox(width: 8),
-                Text('图标包管理', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: settings.availableIconPacks.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.builder(
-                itemCount: settings.availableIconPacks.length,
-                itemBuilder: (context, index) {
-                  final pack = settings.availableIconPacks[index];
-                  return _buildPackItem(pack, settings.currentIconPack == pack.name, settings);
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('关闭')
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: isLoading ? null : _selectAndLoadIconPack,
-                    icon: isLoading
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.add, size: 20),
-                    label: const Text('导入图标包'),
-                  ),
-                ),
-              ],
-            ),
-          ],
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('图标包管理'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
         ),
+      ),
+      body: Column(
+        children: [
+          _buildImportButton(),
+          const SizedBox(height: 8),
+          const Divider(height: 1),
+          Expanded(
+            child: _buildIconPackList(context),
+          ),
+        ],
       ),
     );
   }
