@@ -176,16 +176,12 @@ class AboutPage extends StatelessWidget {
 
           // 版本对比
           if (remoteBuild.isNotEmpty && currentBuild.isNotEmpty) {
-            try {
-              final remoteBuildNum = int.tryParse(remoteBuild) ?? 0;
-              final currentBuildNum = int.tryParse(currentBuild) ?? 0;
+            final remoteBuildNum = int.tryParse(remoteBuild) ?? 0;
+            final currentBuildNum = int.tryParse(currentBuild) ?? 0;
 
-              if (remoteBuildNum > currentBuildNum) {
-                hasNewVersion = true;
-                additionalText = '\n\n发现新版本${versionInfo['Version']}，更新内容：\n${versionInfo['describe'] ?? '修复了一些问题'}';
-              }
-            } catch (e) {
-              // 忽略版本号解析错误
+            if (remoteBuildNum > currentBuildNum) {
+              hasNewVersion = true;
+              additionalText = '\n\n发现新版本${versionInfo['Version']}，更新内容：\n${versionInfo['describe'] ?? '修复了一些问题'}';
             }
           }
 

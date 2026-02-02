@@ -30,18 +30,6 @@ class _IconPackManagerState extends State<IconPackManager> {
 
   bool isLoading = false;
 
-  // UUID 校验
-  bool _isValidUuid(String uuid) {
-    final reg = RegExp(
-      r'^[0-9a-fA-F]{8}-'
-      r'[0-9a-fA-F]{4}-'
-      r'[1-5][0-9a-fA-F]{3}-'
-      r'[89abAB][0-9a-fA-F]{3}-'
-      r'[0-9a-fA-F]{12}$',
-    );
-    return reg.hasMatch(uuid);
-  }
-
   // 版本比较
   int _compareVersion(String a, String b) {
     List<int> pa = a.split('.').map((e) => int.tryParse(e) ?? 0).toList();
@@ -240,7 +228,6 @@ class _IconPackManagerState extends State<IconPackManager> {
       'version': jsonMap['version'],
       'describe': jsonMap['describe'],
     };
-    if (!_isValidUuid(meta['uuid'])) throw Exception('UUID 非法');
 
     Map<String, String> m = {};
     for (final e in jsonMap.entries) {
