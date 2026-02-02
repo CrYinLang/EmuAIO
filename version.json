@@ -1,9 +1,9 @@
 {
-  "LastUpdate": "26-02-01-12-50",
-  "Version": "2.2.0.0",
-  "Build": "2200",
-  "download": "https://gh-proxy.com/https://github.com/CrYinLang/EmuAIO/releases/download/2.2.0.0/app-release.apk",
+  "LastUpdate": "26-02-02-17-25",
+  "Version": "2.2.1.0",
+  "Build": "2210",
+  "download": "https://gh-proxy.com/https://github.com/CrYinLang/EmuAIO/releases/download/2.2.1.0/app-release.apk",
   "download1": "https://qm.qq.com/q/EpPZwKvZok",
-  "describe": "修复了一些问题\n使用新版图标包,不再支持旧版图标包格式\n优化图标包管理系统\n优化性能",
+  "describe": "内置了一些图标",
   "Announcement": "公告:QQ群:1079052463"
 }

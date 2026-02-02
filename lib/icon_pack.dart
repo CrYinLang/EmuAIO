@@ -377,6 +377,7 @@ class _IconPackManagerState extends State<IconPackManager> {
             duration: const Duration(seconds: 2),
           ),
         );
+        settings.toggleTrainIcons(true);
         setState(() {}); // 刷新UI
       }
     } catch (e) {
