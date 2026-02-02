@@ -16,7 +16,7 @@ import 'about_page.dart';
 import 'settings_page.dart';
 
 class AppConstants {
-  static const String lastUpdate = '26-02-02-17-25';
+  static const String lastUpdate = '26-02-02-19-40';
   static const String version = '2.2.1.0';
   static const String build = '2210';
 
@@ -283,13 +283,14 @@ class AppSettings extends ChangeNotifier {
       if (!_availableIconPacks.any((pack) => pack.isDefault)) {
         _availableIconPacks.insert(0, IconPackInfo(
           name: 'default',
-          displayName: '默认图标包1',
+          displayName: 'EmuAIO主题包',
           path: '',
           manifest: {},
           metadata: {
-            'name': '默认图标包1',
-            'describe': '内置默认图标',
+            'name': 'EmuAIO主题包',
+            'describe': '内置默认图标,由全国各地提供的列车图片制成,感谢你们的支持!暂时制作了几个图片,其他的还没做好',
             'author': 'Cr.YinLang',
+            "version": AppConstants.version
           },
           isDefault: true,
           createdTime: DateTime(2024, 1, 1),
@@ -298,26 +299,21 @@ class AppSettings extends ChangeNotifier {
       }
 
     } catch (e) {
-      // 在生产环境中可以记录日志，但不要使用 print
-      debugPrint('加载图标包列表失败: $e');
       _availableIconPacks = [];
     }
   }
 
   Future<void> _saveIconPacksList() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance();
 
-      // 过滤掉默认图标包
-      final nonDefaultPacks = _availableIconPacks
-          .where((pack) => !pack.isDefault)
-          .map((pack) => pack.toJson())
-          .toList();
+    // 过滤掉默认图标包
+    final nonDefaultPacks = _availableIconPacks
+        .where((pack) => !pack.isDefault)
+        .map((pack) => pack.toJson())
+        .toList();
 
-      await prefs.setString('availableIconPacks', json.encode(nonDefaultPacks));
-    } catch (e) {
-      debugPrint('保存图标包列表失败: $e');
-    }
+    await prefs.setString('availableIconPacks', json.encode(nonDefaultPacks));
+
   }
 
   // 添加图标包
