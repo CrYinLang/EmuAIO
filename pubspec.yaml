@@ -16,7 +16,6 @@ dependencies:
   path_provider: ^2.1.5
   shared_preferences: ^2.2.2
   http: ^1.6.0
-  uuid: ^4.3.0
   file_picker: ^10.3.10
   archive: ^4.0.7
 
@@ -34,8 +33,3 @@ flutter:
     - assets/icon/
     - assets/icon/bureau/
     - assets/icon/train/
-
-  fonts:
-    - family: Tips
-      fonts:
-        - asset: assets/tips.ttf

@@ -173,7 +173,7 @@ class AppSettings extends ChangeNotifier {
   bool _isLoading = false;
 
   // ==================== 图标显示设置 ====================
-  bool _showTrainIcons = false;
+  bool _showTrainIcons = true;
   bool _showBureauIcons = true;
 
   // ==================== 图标包设置 ====================
@@ -219,7 +219,7 @@ class AppSettings extends ChangeNotifier {
       _dataSource = TrainDataSource.values[dataSourceIndex.clamp(0, TrainDataSource.values.length - 1)];
 
       // 图标显示设置
-      _showTrainIcons = prefs.getBool('showTrainIcons') ?? false;
+      _showTrainIcons = prefs.getBool('showTrainIcons') ?? true;
       _showBureauIcons = prefs.getBool('showBureauIcons') ?? true;
 
       // 图标包设置
@@ -531,7 +531,7 @@ class AppSettings extends ChangeNotifier {
   void _setDefaultValues() {
     _themeMode = ThemeMode.dark;
     _midnightMode = false;
-    _showTrainIcons = false;
+    _showTrainIcons = true;
     _showBureauIcons = true;
     _currentIconPack = 'default';
     _iconPackPath = '';

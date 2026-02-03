@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'main.dart';
-import 'package:flutter/services.dart' show rootBundle;
-import 'dart:math';
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
@@ -28,8 +26,6 @@ class AboutPage extends StatelessWidget {
             _buildDataSourceSection(context),
             const SizedBox(height: 24),
             _buildCopyrightNotice(context),
-            const SizedBox(height: 28),
-            _buildTips(context),
           ],
         ),
       ),
@@ -459,66 +455,4 @@ class AboutPage extends StatelessWidget {
     );
   }
 
-  Widget _buildTips(BuildContext context) {
-    return StatefulBuilder(
-      builder: (BuildContext context, StateSetter setState) {
-        Future<String>? tipFuture = _loadRandomTip();
-
-        void refreshTip() {
-          setState(() {
-            tipFuture = _loadRandomTip();
-          });
-        }
-
-        return FutureBuilder<String>(
-          future: tipFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            } else {
-              return Center(
-                child: GestureDetector(
-                  onTap: refreshTip,
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    child: Text(
-                      snapshot.data ?? '',
-                      style: TextStyle(
-                        fontFamily: 'Tips',
-                        fontSize: 20,
-                        fontWeight: FontWeight.w500,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        height: 1.6,
-                        letterSpacing: 0.5,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-              );
-            }
-          },
-        );
-      },
-    );
-  }
-
-  Future<String> _loadRandomTip() async {
-    try {
-      final String content = await rootBundle.loadString('assets/tips.txt');
-      final List<String> lines = content.split('\n').where((line) => line.trim().isNotEmpty).toList();
-
-      final int randomIndex = Random().nextInt(lines.length);
-      return lines[randomIndex].trim();
-    } catch (e) {
-      return '';
-    }
-  }
 }
