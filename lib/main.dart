@@ -16,7 +16,7 @@ import 'about_page.dart';
 import 'settings_page.dart';
 
 class AppConstants {
-  static const String lastUpdate = '26-02-02-19-40';
+  static const String lastUpdate = '26-02-03-16-20';
   static const String version = '2.2.1.0';
   static const String build = '2210';
 
@@ -288,12 +288,12 @@ class AppSettings extends ChangeNotifier {
           manifest: {},
           metadata: {
             'name': 'EmuAIO主题包',
-            'describe': '内置默认图标,由全国各地提供的列车图片制成,感谢你们的支持!暂时制作了几个图片,其他的还没做好',
+            'describe': '内置默认图标,由全国各地车迷提供的列车图片制成,感谢你们的支持!',
             'author': 'Cr.YinLang',
             "version": AppConstants.version
           },
           isDefault: true,
-          createdTime: DateTime(2024, 1, 1),
+          createdTime: DateTime(2026, 2, 3),
           iconCount: 0,
         ));
       }

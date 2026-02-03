@@ -77,6 +77,15 @@ class TrainModelUtils {
       }
     }
 
+    if (modelC == 'CRH6F') {
+      int? num = int.tryParse(cleanedNumber.replaceAll(RegExp(r'[^0-9]'), ''));
+      if (num != null && num >= 409 && num <= 413) {
+        return 'CRH6A';
+      }
+      if (num != null && num >= 430 && num <= 435) {
+        return 'CRH6A';
+      }
+    }
 
     if (modelC == 'CRH6F-A') return 'CRH6A';
 
@@ -88,6 +97,26 @@ class TrainModelUtils {
     if (modelC == 'CRH3A' && cleanedNumber == '0302') return 'CRH3A-YC';
     if (modelC == 'CRH3A' && cleanedNumber == '0502') return 'CRH3A-YC';
     if (modelC == 'CRH380AL' || modelC == 'CRH380AN') return 'CRH380A';
+    if (modelC == 'CRH2B') {
+      int? num = int.tryParse(cleanedNumber.replaceAll(RegExp(r'[^0-9]'), ''));
+      if (num != null && num >= 2466 && num <= 2472) {
+        return 'CRH2A';
+      }
+      if (num != null && num >= 4096 && num <= 4105) {
+        return 'CRH2A';
+      }
+    }
+
+    if (modelC == 'CRH5G') {
+      int? num = int.tryParse(cleanedNumber.replaceAll(RegExp(r'[^0-9]'), ''));
+      if (num != null && num >= 5218 && num <= 5229) {
+        return 'CRH5G';
+      }
+    }
+    if (modelC == 'CRH5G') return 'CRH5A';
+
+    if (modelC == 'CRH2E' && cleanedNumber == '2461' || cleanedNumber == '2462') return 'CRH2E-H';
+    if (modelC == 'CRH2G') return 'CRH2E-H';
     if (modelC == 'CRH2B') return 'CRH2BE';
     if (modelC == 'CRH2E') return 'CRH2BE';
     if (modelC == 'CRH380BL') return 'CRH380B';
@@ -139,7 +168,6 @@ class TrainModelUtils {
           return 'CRH6A-A-XCKX-1';
         }
         if (num >= 228 && num <= 229) return 'CRH6A-A-SLCJ';
-        if (num == 524) return 'CRH6F';
       }
     }
 
