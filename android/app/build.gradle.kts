@@ -16,7 +16,7 @@ val keystoreProperties = Properties().apply {
 }
 
 android {
-    namespace = "com.cryinlang.emutravel"
+    namespace = "com.cryinlang.emuaio"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -47,9 +47,9 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode.toInt()
         versionName = flutter.versionName
-        ndk {
-            abiFilters.add("arm64-v8a")  // 修正后的语法
-        }
+//        ndk {
+//            abiFilters.add("arm64-v8a")  // 修正后的语法
+//        }
     }
 
     buildTypes {
