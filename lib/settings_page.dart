@@ -101,6 +101,13 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
               _buildDataSourceTile(
                 settings: settings,
+                source: TrainDataSource.railGo,
+                title: 'RailGO',
+                description: '第三方数据源，车型信息多',
+                icon: Icons.cloud_upload,
+              ),
+              _buildDataSourceTile(
+                settings: settings,
                 source: TrainDataSource.official12306,
                 title: '12306官方',
                 description: '官方数据，最准确可靠',

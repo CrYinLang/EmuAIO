@@ -359,6 +359,11 @@ class _HomePageState extends State<HomePage> {
             Uri.parse('https://api.rail.re/train/${fullCode.toUpperCase()}'),
             headers: headers,
           );
+        } else if (settings.dataSource == TrainDataSource.railGo) {
+          resp = await http.get(
+            Uri.parse('https://emu.data.railgo.zenglingkun.cn/train/${fullCode.toUpperCase()}'),
+            headers: headers,
+          );
         } else {
           http.Response? resp12306;
           resp12306 = await http.get(

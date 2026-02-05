@@ -16,9 +16,9 @@ import 'about_page.dart';
 import 'settings_page.dart';
 
 class AppConstants {
-  static const String lastUpdate = '26-02-04-00-10';
-  static const String version = '2.2.1.1';
-  static const String build = '2211';
+  static const String lastUpdate = '26-02-05-18-00';
+  static const String version = '2.2.1.2';
+  static const String build = '2212';
 
   static Future<Map<String, dynamic>?> fetchVersionInfo() async {
     try {
@@ -129,6 +129,7 @@ class IconPackInfo {
 
 enum TrainDataSource {
   railRe,
+  railGo,
   official12306,
 }
 
@@ -491,6 +492,8 @@ class AppSettings extends ChangeNotifier {
     switch (_dataSource) {
       case TrainDataSource.railRe:
         return 'Rail.re';
+      case TrainDataSource.railGo:
+        return 'RailGo';
       case TrainDataSource.official12306:
         return '12306官方';
     }
@@ -499,6 +502,8 @@ class AppSettings extends ChangeNotifier {
   String get dataSourceDescription {
     switch (_dataSource) {
       case TrainDataSource.railRe:
+        return '第三方API，提供更丰富的数据，但可能缺少部分数据';
+      case TrainDataSource.railGo:
         return '第三方API，提供更丰富的数据，但可能缺少部分数据';
       case TrainDataSource.official12306:
         return '官方数据源，最准确可靠，但可能城际和动集没有';
