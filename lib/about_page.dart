@@ -54,25 +54,7 @@ class AboutPage extends StatelessWidget {
             color: theme.colorScheme.onSurfaceVariant,
             height: 1.5,
           ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          '为什么没有图标?因为版权没谈拢,但是有预设包,你可以自己制作,也可以发我审核,进行公开内置',
-          style: TextStyle(
-            fontSize: 16,
-            color: theme.colorScheme.onSurfaceVariant,
-            height: 1.5,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          '似乎是最终版本?',
-          style: TextStyle(
-            fontSize: 16,
-            color: theme.colorScheme.onSurfaceVariant,
-            height: 1.5,
-          ),
-        ),
+        )
       ],
     );
   }
@@ -161,7 +143,7 @@ class AboutPage extends StatelessWidget {
     return FutureBuilder<Map<String, dynamic>?>(
       future: AppConstants.fetchVersionInfo(),
       builder: (context, snapshot) {
-        const String baseText = '提示：不卸载旧版本升级到此版本\n请立即连续点击右下角设置15次\n以重置图标包的问题,或者清除软件数据';
+        const String baseText = '提示：新软件开发中,到时候做好进群拿';
         String additionalText = '';
         bool hasNewVersion = false;
 
