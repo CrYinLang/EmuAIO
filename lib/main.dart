@@ -17,8 +17,8 @@ import 'settings_page.dart';
 
 class AppConstants {
   static const String lastUpdate = '26-02-05-18-00';
-  static const String version = '2.2.1.2';
-  static const String build = '2212';
+  static const String version = '2.2.2.2';
+  static const String build = '2222';
 
   static Future<Map<String, dynamic>?> fetchVersionInfo() async {
     try {
