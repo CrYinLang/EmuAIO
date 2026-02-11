@@ -1,9 +1,9 @@
 {
-  "LastUpdate": "26-02-04-00-10",
-  "Version": "2.2.2.2",
-  "Build": "2222",
-  "download": "https://gh-proxy.com/https://github.com/CrYinLang/EmuAIO/releases/download/2.2.1.1/app-release.apk",
+  "LastUpdate": "26-02-11-08-30",
+  "Version": "3.0.0.0",
+  "Build": "3000",
+  "download": "https://gh-proxy.com/https://github.com/CrYinLang/EmuAIO/releases/download/3.0.0.0/app-release.apk",
   "download1": "https://qm.qq.com/q/EpPZwKvZok",
-  "describe": "最后修复了一点bug,压缩体积,准备开新档\n这个项目以后没有大bug一般不会更新了",
+  "describe": "欲更新,预更新",
   "Announcement": "公告:QQ群:1079052463\n官网:https://emutrain.github.io/\n新项目EmuTravel开发中!"
 }
