@@ -1,9 +1,10 @@
 {
-  "LastUpdate": "26-02-11-08-30",
+  "LastUpdate": "26-02-11-12-45",
   "Version": "3.0.0.0",
   "Build": "3000",
-  "download": "https://gh-proxy.com/https://github.com/CrYinLang/EmuAIO/releases/download/3.0.0.0/app-release.apk",
-  "download1": "https://qm.qq.com/q/EpPZwKvZok",
-  "describe": "欲更新,预更新",
+  "github": "https://gh-proxy.com/https://github.com/CrYinLang/EmuAIO/releases/download/3.0.0.0/app-release.apk",
+  "gitee": "https://gitee.com/CrYinLang/EmuAIO/releases/download/3.0.0.0/app-release.apk",
+  "qq": "https://qm.qq.com/q/pMEbF7ZFZK",
+  "describe": "新版本!",
   "Announcement": "公告:QQ群:1079052463\n官网:https://emutrain.github.io/\n新项目EmuTravel开发中!"
 }

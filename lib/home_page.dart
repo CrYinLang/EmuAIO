@@ -328,6 +328,7 @@ class _HomePageState extends State<HomePage> {
     });
 
     try {
+      
       final headers = {'User-Agent': 'Mozilla/5.0'};
       final queryTime = DateTime.now().toLocal().toString().substring(0, 19);
 
@@ -520,7 +521,6 @@ class _HomePageState extends State<HomePage> {
 
         if (settings.dataEmuSource == TrainEmuDataSource.moeFactory) {
           // ==================== moeFactory 数据源 ====================
-          // POST请求，需要特殊处理
           final postUrl = 'https://rail.moefactory.com/api/emuSerialNumber/query';
 
           // 构建POST请求体
@@ -654,7 +654,7 @@ class _HomePageState extends State<HomePage> {
         }
       }
 
-      // ==================== 车号查询（原样） ====================
+// ==================== 车号查询 ====================
       else if (searchType == 'trainId') {
         final cleanedInput = cleanString(input);
         if (cleanedInput.length < 4) {
@@ -730,32 +730,98 @@ class _HomePageState extends State<HomePage> {
           await Future.wait(emuToRecord.keys.map((emuNo) async {
             try {
               final settings = Provider.of<AppSettings>(context, listen: false);
-              String url;
-              if (settings.dataSource == TrainDataSource.railGo) {
-                url = 'https://emu.data.railgo.zenglingkun.cn/emu/';
-              } else{
-                url = 'https://api.rail.re/emu/$emuNo';
-              }
-              final resp = await http.get(
-                Uri.parse(url),
-                headers: headers,
-              );
+              http.Response? resp;
 
-              if (resp.statusCode == 200 &&
-                  resp.body.isNotEmpty &&
-                  resp.body != '[]') {
-                final data = json.decode(resp.body);
-                if (data.isNotEmpty) {
-                  final item = data[0];
-                  final trainNo = item['train_no']?.toString().trim() ?? '';
-                  final date = item['date']?.toString() ?? '';
-                  if (trainNo.isNotEmpty) {
-                    routeMap[emuNo] = '交路时间: $date\n本务车次: $trainNo';
-                    return;
+              if (settings.dataEmuSource == TrainEmuDataSource.moeFactory) {
+                // ==================== moeFactory 数据源 ====================
+                final postUrl = 'https://rail.moefactory.com/api/emuSerialNumber/query';
+
+                // 构建POST请求体
+                final Map<String, String> requestBody = {
+                  'keyword': emuNo,
+                };
+
+                // 发送POST请求
+                resp = await http.post(
+                  Uri.parse(postUrl),
+                  headers: {
+                    ...headers,
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                  },
+                  body: requestBody,
+                ).timeout(Duration(seconds: 10));
+
+                if (resp.statusCode == 200 && resp.body.isNotEmpty) {
+                  final Map<String, dynamic> response = json.decode(resp.body);
+
+                  // 检查响应code
+                  if (response['code'] == 200) {
+                    // 获取data数组
+                    final List<dynamic> data = response['data'] ?? [];
+
+                    if (data.isNotEmpty) {
+                      // 取第一条数据
+                      final item = data[0];
+                      final trainNo = item['trainNumber']?.toString().trim() ?? '';
+                      final date = item['date']?.toString().trim() ?? '';
+
+                      if (trainNo.isNotEmpty) {
+                        routeMap[emuNo] = '正在担当: $date\n本务车次: $trainNo';
+                        return;
+                      }
+                    }
                   }
                 }
               }
-            } catch (_) {}
+              else if (settings.dataEmuSource == TrainEmuDataSource.railGo) {
+                // ==================== railGo 数据源 ====================
+                resp = await http.get(
+                  Uri.parse('https://emu.data.railgo.zenglingkun.cn/emu/$emuNo'),
+                  headers: headers,
+                ).timeout(Duration(seconds: 10));
+
+                if (resp.statusCode == 200 &&
+                    resp.body.isNotEmpty &&
+                    resp.body != '[]') {
+                  final emuData = json.decode(resp.body);
+                  if (emuData.isNotEmpty) {
+                    final item = emuData[0];
+                    final trainNo = item['train_no']?.toString().trim() ?? '';
+                    final date = item['date']?.toString() ?? '';
+
+                    if (trainNo.isNotEmpty) {
+                      routeMap[emuNo] = '正在担当: $date\n本务车次: $trainNo';
+                      return;
+                    }
+                  }
+                }
+              }
+              else {
+                // ==================== rail.re 数据源 ====================
+                resp = await http.get(
+                  Uri.parse('https://api.rail.re/emu/$emuNo'),
+                  headers: headers,
+                ).timeout(Duration(seconds: 10));
+
+                if (resp.statusCode == 200 &&
+                    resp.body.isNotEmpty &&
+                    resp.body != '[]') {
+                  final emuData = json.decode(resp.body);
+                  if (emuData.isNotEmpty) {
+                    final item = emuData[0];
+                    final trainNo = item['train_no']?.toString().trim() ?? '';
+                    final date = item['date']?.toString() ?? '';
+
+                    if (trainNo.isNotEmpty) {
+                      routeMap[emuNo] = '正在担当: $date\n本务车次: $trainNo';
+                      return;
+                    }
+                  }
+                }
+              }
+            } catch (_) {
+              // 忽略错误，继续处理其他车组
+            }
 
             routeMap[emuNo] = null;
           }));
