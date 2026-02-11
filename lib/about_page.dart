@@ -19,8 +19,6 @@ class AboutPage extends StatelessWidget {
           children: [
             _buildHeader(context),
             const SizedBox(height: 28),
-            _buildVersionInfo(context),
-            const SizedBox(height: 28),
             _buildAnnouncementBar(context),
             const SizedBox(height: 28),
             _buildDataSourceSection(context),
@@ -59,89 +57,12 @@ class AboutPage extends StatelessWidget {
     );
   }
 
-  Widget _buildVersionInfo(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark
-            ? theme.colorScheme.surfaceContainerHighest
-            : theme.colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark
-              ? theme.colorScheme.outlineVariant
-              : Color.fromARGB(51, 0, 0, 0), // 使用 Color.fromARGB
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.info_outline,
-            color: theme.colorScheme.primary,
-            size: 20,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '版本信息',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: theme.colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '上次更新:${AppConstants.lastUpdate}',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                Text(
-                  '${AppConstants.version} | ${AppConstants.build}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color.fromARGB(
-                      204, // 0.8 透明度对应 204
-                      (theme.colorScheme.onSurfaceVariant.r * 255).round(),
-                      (theme.colorScheme.onSurfaceVariant.g * 255).round(),
-                      (theme.colorScheme.onSurfaceVariant.b * 255).round(),
-                    ),
-                  ),
-                ),
-                Text(
-                  '开发：Cr.YinLang',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color.fromARGB(
-                      204, // 0.8 透明度对应 204
-                      (theme.colorScheme.onSurfaceVariant.r * 255).round(),
-                      (theme.colorScheme.onSurfaceVariant.g * 255).round(),
-                      (theme.colorScheme.onSurfaceVariant.b * 255).round(),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildAnnouncementBar(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
     return FutureBuilder<Map<String, dynamic>?>(
-      future: AppConstants.fetchVersionInfo(),
+      future: Vars.fetchVersionInfo(),
       builder: (context, snapshot) {
         const String baseText = '提示：新软件开发中,到时候做好进群拿';
         String additionalText = '';
@@ -150,7 +71,7 @@ class AboutPage extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
           final versionInfo = snapshot.data!;
           final remoteBuild = versionInfo['Build']?.toString() ?? '';
-          final currentBuild = AppConstants.build;
+          final currentBuild = Vars.build;
 
           // 版本对比
           if (remoteBuild.isNotEmpty && currentBuild.isNotEmpty) {
@@ -247,9 +168,15 @@ class AboutPage extends StatelessWidget {
         ),
         _buildDataSourceItemWithIconData(
           context: context,
-          icon: Icons.cloud_done,
+          icon: Icons.cloud_upload,
           title: '12306',
           description: '联网交路查询',
+        ),
+        _buildDataSourceItemWithIconData(
+          context: context,
+          icon: Icons.cloud_download,
+          title: 'MoeFactory',
+          description: '联网车号交路查询',
         ),
       ],
     );

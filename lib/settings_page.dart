@@ -1,21 +1,11 @@
 // settings_page.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
+
+import 'tool.dart';
 import 'main.dart';
 import 'icon_pack.dart';
 import 'update.dart';
-
-Future<void> launchSocialLink(BuildContext context, String url) async {
-  final uri = Uri.parse(url);
-  if (await canLaunchUrl(uri)) {
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('正在打开链接...'), duration: Duration(seconds: 2)),
-    );
-  }
-}
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -46,14 +36,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 value: settings.themeMode == ThemeMode.dark,
                 onChanged: settings.toggleTheme,
               ),
-              if (settings.themeMode == ThemeMode.dark)
-                _buildSwitch(
-                  title: '深夜模式',
-                  subtitle: '纯黑背景，更护眼的配色',
-                  icon: settings.midnightMode ? Icons.nightlight_round : Icons.nightlight_outlined,
-                  value: settings.midnightMode,
-                  onChanged: settings.toggleMidnightMode,
-                ),
             ],
           ),
           const SizedBox(height: 16),
@@ -90,34 +72,124 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 16),
           _buildSection(
             icon: Icons.storage,
-            title: '车次数据源设置',
+            title: '数据源设置',
             children: [
-              _buildDataSourceTile(
-                settings: settings,
-                source: TrainDataSource.railRe,
-                title: 'Rail.re',
-                description: '第三方数据源，车型信息多',
-                icon: Icons.cloud_upload,
-              ),
-              _buildDataSourceTile(
-                settings: settings,
-                source: TrainDataSource.railGo,
-                title: 'RailGo',
-                description: '第三方数据源，车型信息多',
-                icon: Icons.cloud_download,
-              ),
-              _buildDataSourceTile(
-                settings: settings,
-                source: TrainDataSource.official12306,
-                title: '12306官方',
-                description: '官方数据，最准确可靠',
-                icon: Icons.train,
-              ),
-              const SizedBox(height: 8),
+              // 车次数据源标题
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Text(settings.dataSourceDescription,
-                    style: TextStyle(fontSize: 12, color: onSurface.withValues(alpha:0.7))),
+                padding: const EdgeInsets.only(bottom: 8, left: 4),
+                child: Text(
+                  '车次数据源',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: onSurface.withValues(alpha: 0.9),
+                  ),
+                ),
+              ),
+              // 车次数据源
+              IntrinsicHeight(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _buildTrainDataSourceCard(
+                        settings: settings,
+                        source: TrainDataSource.railRe,
+                        title: 'Rail.re',
+                        description: '第三方数据源',
+                        icon: Icons.cloud_upload,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildTrainDataSourceCard(
+                        settings: settings,
+                        source: TrainDataSource.railGo,
+                        title: 'RailGo',
+                        description: '第三方数据源',
+                        icon: Icons.cloud_download,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildTrainDataSourceCard(
+                        settings: settings,
+                        source: TrainDataSource.official12306,
+                        title: '12306',
+                        description: '官方数据源',
+                        icon: Icons.train,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                child: Text(
+                  settings.dataSourceDescription,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: onSurface.withValues(alpha: 0.7),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // 车号数据源标题
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8, left: 4),
+                child: Text(
+                  '车号数据源',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: onSurface.withValues(alpha: 0.9),
+                  ),
+                ),
+              ),
+              // 车号数据源
+              IntrinsicHeight(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _buildEmuDataSourceCard(
+                        settings: settings,
+                        source: TrainEmuDataSource.railRe,
+                        title: 'Rail.re',
+                        description: '第三方数据源',
+                        icon: Icons.cloud_upload,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildEmuDataSourceCard(
+                        settings: settings,
+                        source: TrainEmuDataSource.railGo,
+                        title: 'RailGo',
+                        description: '第三方数据源',
+                        icon: Icons.cloud_download,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildEmuDataSourceCard(
+                        settings: settings,
+                        source: TrainEmuDataSource.moeFactory,
+                        title: 'MoeFactory',
+                        description: '第三方数据源',
+                        icon: Icons.train,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                child: Text(
+                  settings.dataEmuSourceDescription, // 使用车号数据源的描述
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: onSurface.withValues(alpha: 0.7),
+                  ),
+                ),
               ),
             ],
           ),
@@ -128,7 +200,7 @@ class _SettingsPageState extends State<SettingsPage> {
             children: [
               _buildTile(
                 title: '版本',
-                subtitle: '${AppConstants.version} | ${AppConstants.build}',
+                subtitle: '${Vars.version} | ${Vars.build}',
                 trailingIcon: Icons.arrow_forward_ios,
                 onTap: () => UpdateUI.showUpdateFlow(context),
               ),
@@ -136,7 +208,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 title: '开发者',
                 subtitle: 'Cr.YinLang',
                 trailingIcon: Icons.arrow_forward_ios,
-                onTap: () => _showDeveloperDialog(context),
+                onTap: () => Tool.showDeveloperDialog(context),
               ),
             ],
           ),
@@ -149,13 +221,33 @@ class _SettingsPageState extends State<SettingsPage> {
       Card(
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Column(children: [
-          ListTile(
-            leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
-            title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-          ),
-          ...children,
-        ]),
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // 使用 min 来避免溢出
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(
+                children: [
+                  Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20),
+                  const SizedBox(width: 12),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Column(children: children),
+            ),
+          ],
+        ),
       );
 
   Widget _buildSwitch({required String title, required String subtitle, required IconData icon,
@@ -181,123 +273,159 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildDataSourceTile({required AppSettings settings, required TrainDataSource source,
-    required String title, required String description, required IconData icon}) {
-    final theme = Theme.of(context);
-    final isSelected = settings.dataSource == source;
-    final primary = theme.colorScheme.primary;
+  Widget _buildTrainDataSourceCard({
+    required AppSettings settings,
+    required TrainDataSource source,
+    required String title,
+    required String description,
+    required IconData icon,
+  }) {
+    bool isSelected = settings.dataSource == source;
 
-    return ListTile(
-      leading: Container(
-        width: 40, height: 40,
-        decoration: BoxDecoration(
-          color: isSelected ? primary.withValues(alpha:0.1) : theme.colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isSelected
+              ? Theme.of(context).colorScheme.primary
+              : Colors.transparent,
+          width: 2,
         ),
-        child: Icon(icon, color: isSelected ? primary : theme.colorScheme.onSurfaceVariant),
       ),
-      title: Row(children: [
-        Text(title, style: TextStyle(fontWeight: FontWeight.w500,
-            color: isSelected ? primary : theme.colorScheme.onSurface)),
-        if (isSelected) ...[
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(color: primary, borderRadius: BorderRadius.circular(4)),
-            child: Text('当前', style: TextStyle(color: theme.colorScheme.onPrimary, fontSize: 10, fontWeight: FontWeight.bold)),
+      child: InkWell(
+        onTap: () {
+          if (!isSelected) {
+            settings.setDataSource(source);
+          }
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 100),
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 28,
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                description,
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.8)
+                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+              if (isSelected) ...[
+                const SizedBox(height: 8),
+                Icon(
+                  Icons.check_circle_rounded,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ],
+            ],
           ),
-        ],
-      ]),
-      subtitle: Text(description, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
-      trailing: Icon(isSelected ? Icons.check_circle : Icons.circle_outlined,
-          color: isSelected ? primary : theme.colorScheme.outline, size: 20),
-      onTap: () { if (!isSelected) settings.setDataSource(source); },
+        ),
+      ),
     );
   }
 
-  void _showDeveloperDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) => Dialog(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
+  Widget _buildEmuDataSourceCard({
+    required AppSettings settings,
+    required TrainEmuDataSource source,
+    required String title,
+    required String description,
+    required IconData icon,
+  }) {
+    bool isSelected = settings.dataEmuSource == source;
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isSelected
+              ? Theme.of(context).colorScheme.primary
+              : Colors.transparent,
+          width: 2,
+        ),
+      ),
+      child: InkWell(
+        onTap: () {
+          if (!isSelected) {
+            settings.setEmuDataSource(source);
+          }
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 100),
+          padding: const EdgeInsets.all(12),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 80, height: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha:0.3), width: 2),
-                ),
-                child: ClipOval(
-                  child: Image.asset('assets/icon/CrYinLang.png', fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha:0.1),
-                      child: Icon(Icons.person, size: 40, color: Theme.of(context).colorScheme.primary),
-                    ),
-                  ),
+              Icon(
+                icon,
+                size: 28,
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurface,
                 ),
               ),
-              const SizedBox(height: 16),
-              Text('开发者', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface)),
               const SizedBox(height: 4),
-              Text('Cr.YinLang', style: TextStyle(fontSize: 16,
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.7))),
-              const SizedBox(height: 4),
-              Text('EmuAIO', style: TextStyle(fontSize: 14,
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.5), fontStyle: FontStyle.italic)),
-              const SizedBox(height: 24),
-              Text('欢迎关注我的社交账号获取更多信息', style: TextStyle(fontSize: 14,
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha:0.6)), textAlign: TextAlign.center),
-              const SizedBox(height: 20),
-              Row(children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => launchSocialLink(context, 'https://github.com/CrYinLang'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    icon: const Icon(Icons.code, size: 20),
-                    label: const Text('GitHub'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => launchSocialLink(context,
-                        'https://www.douyin.com/user/MS4wLjABAAAA-bZxFhm96BhUle209c1gQ5HskPw4y-olT2PwOYevJ6fSkkHmIV23EuGfjaq1xHCx'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF000000),
-                      foregroundColor: const Color(0xFF00FF9D),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    icon: const Icon(Icons.video_library, size: 20),
-                    label: const Text('抖音'),
-                  ),
-                ),
-              ]),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Theme.of(context).colorScheme.onSurface,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: const Text('关闭'),
+              Text(
+                description,
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.8)
+                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
+              if (isSelected) ...[
+                const SizedBox(height: 8),
+                Icon(
+                  Icons.check_circle_rounded,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ],
             ],
           ),
         ),

@@ -1,17 +1,15 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:url_launcher/url_launcher.dart';
 
 import 'main.dart';
-import 'color_theme.dart';
+import 'tool.dart';
 
 class UpdateService {
   static Future<Map<String, dynamic>?> checkForUpdate() async {
     try {
       final response = await http
-          .get(Uri.parse(
-          'https://gitee.com/CrYinLang/emu-aio/raw/master/version.json'))
+          .get(Uri.parse(Vars.urlServer))
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
@@ -80,44 +78,74 @@ class UpdateResultDialog extends StatelessWidget {
 
   const UpdateResultDialog({super.key, required this.versionInfo});
 
+  // 添加链接为空时的提示对话框
+  void _showNoLinkDialog(BuildContext context, String linkName) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('提示'),
+          content: Text('$linkName暂不可用，请选择其他下载方式'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('确定'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final currentBuild = int.tryParse(AppConstants.build) ?? 0;
+    final currentBuild = int.tryParse(Vars.build) ?? 0;
+    final currentVersion = Vars.version;
 
     bool hasUpdate = false;
     String resultMessage = '';
-    Color resultColor = AppColors.matchHigh;
+    Color resultColor = Colors.green;
     IconData resultIcon = Icons.check_circle;
     String? describeText;
-    String? downloadUrl;
-    String? downloadUrl1;
+    String? githubUrl;
+    String? giteeUrl;
+    String? qqUrl;
     String? newVersion;
     String? updateTime;
 
     if (versionInfo != null && versionInfo!.containsKey('error')) {
       resultMessage = '检查更新失败: ${versionInfo!['error']}';
-      resultColor = AppColors.matchLow;
+      resultColor = Colors.red;
       resultIcon = Icons.error;
     } else if (versionInfo != null) {
       final remoteBuild = int.tryParse(versionInfo!['Build'].toString()) ?? 0;
       newVersion = versionInfo!['Version'];
       updateTime = versionInfo!['LastUpdate'];
-      downloadUrl = versionInfo!['download'];
-      downloadUrl1 = versionInfo!['download1'];
+
+      // 修正字段名：根据你的JSON结构
+      githubUrl = versionInfo!['github'];
+      giteeUrl = versionInfo!['gitee'];
+      qqUrl = versionInfo!['qq'];
+
       describeText = versionInfo!['describe'] ?? '修复了一些已知问题';
 
       if (remoteBuild > currentBuild) {
         hasUpdate = true;
-        resultMessage = '发现新版本 ${AppConstants.version}-->$newVersion\n\n更新时间: $updateTime\n\n更新介绍:\n$describeText\n\n请选择下载链接';
-        resultColor = AppColors.matchMedium;
+        resultMessage = '发现新版本\n\n'
+            '当前版本: $currentVersion ($currentBuild)\n'
+            '最新版本: $newVersion ($remoteBuild)\n\n'
+            '更新时间: $updateTime\n\n'
+            '更新内容:\n$describeText';
+        resultColor = Colors.orange;
         resultIcon = Icons.system_update;
       } else {
-        resultMessage =
-        '已是最新版本\n当前版本: ${AppConstants.version} | ${AppConstants.build}';
+        resultMessage = '已是最新版本\n\n'
+            '当前版本: $currentVersion ($currentBuild)\n'
+            '最新版本: $newVersion ($remoteBuild)';
       }
     } else {
       resultMessage = '检查更新失败: 未知错误';
-      resultColor = AppColors.matchLow;
+      resultColor = Colors.red;
       resultIcon = Icons.error;
     }
 
@@ -125,7 +153,7 @@ class UpdateResultDialog extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.8, // 最大高度为屏幕的80%
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
         ),
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -163,19 +191,25 @@ class UpdateResultDialog extends StatelessWidget {
                 const SizedBox(height: 24),
 
                 if (hasUpdate) ...[
+                  // 第一行：蓝色QQ群 + 绿色Gitee
                   Row(
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: () {
                             Navigator.pop(context);
-                            _launchBrowser(context, downloadUrl!);
+                            if (qqUrl != null && qqUrl.isNotEmpty) {
+                              Tool.launchBrowser(context, qqUrl);
+                            } else {
+                              _showNoLinkDialog(context, 'QQ群链接');
+                            }
                           },
-                          icon: const Icon(Icons.download),
-                          label: const Text('Github'),
+                          icon: const Icon(Icons.group, size: 20),
+                          label: const Text('QQ群下载', style: TextStyle(fontSize: 14)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue,
                             foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                         ),
                       ),
@@ -184,44 +218,77 @@ class UpdateResultDialog extends StatelessWidget {
                         child: ElevatedButton.icon(
                           onPressed: () {
                             Navigator.pop(context);
-                            _launchBrowser(context, downloadUrl1!);
+                            if (giteeUrl != null && giteeUrl.isNotEmpty) {
+                              Tool.launchBrowser(context, giteeUrl);
+                            } else {
+                              _showNoLinkDialog(context, 'Gitee链接');
+                            }
                           },
-                          icon: const Icon(Icons.download),
-                          label: const Text('QQ群'),
+                          icon: const Icon(Icons.code, size: 20),
+                          label: const Text('Gitee下载', style: TextStyle(fontSize: 14)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green,
                             foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                ],
 
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text(hasUpdate ? '取消下载' : '关闭'),
+                  // 第二行：灰色Github + 关闭按钮
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            if (githubUrl != null && githubUrl.isNotEmpty) {
+                              Tool.launchBrowser(context, githubUrl);
+                            } else {
+                              _showNoLinkDialog(context, 'Github链接');
+                            }
+                          },
+                          icon: const Icon(Icons.cloud_download, size: 20),
+                          label: const Text('Github', style: TextStyle(fontSize: 14)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          child: const Text('关闭', style: TextStyle(fontSize: 14)),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
+                ] else ...[
+                  // 没有更新时的关闭按钮
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text('关闭', style: TextStyle(fontSize: 14)),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
         ),
       ),
     );
-  }
-}
-
-Future<void> _launchBrowser(BuildContext context, String url) async {
-  final uri = Uri.parse(url);
-  if (await canLaunchUrl(uri)) {
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('正在下载新版本')));
-    }
   }
 }

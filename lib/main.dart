@@ -9,21 +9,21 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import 'train_model.dart';
-import 'color_theme.dart';
 import 'home_page.dart';
 import 'gallery_page.dart';
 import 'about_page.dart';
 import 'settings_page.dart';
 
-class AppConstants {
+class Vars {
   static const String lastUpdate = '26-02-11-08-30';
   static const String version = '3.0.0.0';
   static const String build = '3000';
+  static const String urlServer = 'https://gitee.com/CrYinLang/emu-aio/raw/master/version.json';
 
   static Future<Map<String, dynamic>?> fetchVersionInfo() async {
     try {
       final response = await http.get(
-          Uri.parse('https://gitee.com/CrYinLang/emu-aio/raw/master/version.json')
+          Uri.parse(urlServer)
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
@@ -57,9 +57,7 @@ class EmuAIOApp extends StatelessWidget {
           title: 'EmuAIO',
           themeMode: settings.themeMode,
           theme: ThemeData.light(useMaterial3: true),
-          darkTheme: settings.midnightMode
-              ? ColorThemeUtils.buildMidnightTheme()
-              : ThemeData.dark(useMaterial3: true),
+          darkTheme: ThemeData.dark(useMaterial3: true),
           home: const MainScreen(),
           debugShowCheckedModeBanner: false,
         );
@@ -133,6 +131,12 @@ enum TrainDataSource {
   official12306,
 }
 
+enum TrainEmuDataSource {
+  railRe,
+  railGo,
+  moeFactory,
+}
+
 class AppSettings extends ChangeNotifier {
   // ==================== 图标文件名获取 ====================
   String getIconFileName(String iconModel) {
@@ -199,11 +203,11 @@ class AppSettings extends ChangeNotifier {
   List<IconPackInfo> get availableIconPacks => _availableIconPacks;
 
   // ==================== 应用常量 ====================
-  static const String version = AppConstants.version;
-  static const String build = AppConstants.build;
-  static const String lastUpdate = AppConstants.lastUpdate;
+  static const String version = Vars.version;
+  static const String build = Vars.build;
+  static const String lastUpdate = Vars.lastUpdate;
 
-// ==================== 初始化设置 ====================
+  // ==================== 初始化设置 ====================
   Future<void> loadSettings() async {
     _isLoading = true;
     notifyListeners();
@@ -215,9 +219,13 @@ class AppSettings extends ChangeNotifier {
       _themeMode = (prefs.getBool('isDark') ?? true) ? ThemeMode.dark : ThemeMode.light;
       _midnightMode = prefs.getBool('midnightMode') ?? false;
 
-      // 数据源设置
+      // 车次数据源设置
       final dataSourceIndex = prefs.getInt('dataSource') ?? 0;
       _dataSource = TrainDataSource.values[dataSourceIndex.clamp(0, TrainDataSource.values.length - 1)];
+
+      // 车号数据源设置
+      final dataEmuSourceIndex = prefs.getInt('dataEmuSource') ?? 0;
+      _dataEmuSource = TrainEmuDataSource.values[dataEmuSourceIndex.clamp(0, TrainEmuDataSource.values.length - 1)];
 
       // 图标显示设置
       _showTrainIcons = prefs.getBool('showTrainIcons') ?? true;
@@ -291,7 +299,7 @@ class AppSettings extends ChangeNotifier {
             'name': 'EmuAIO主题包',
             'describe': '内置默认图标,由全国各地车迷提供的列车图片制成,感谢你们的支持!',
             'author': 'Cr.YinLang',
-            "version": AppConstants.version
+            "version": Vars.version
           },
           isDefault: true,
           createdTime: DateTime(2026, 2, 3),
@@ -483,10 +491,12 @@ class AppSettings extends ChangeNotifier {
     }
   }
 
-  // ==================== 数据源设置 ====================
+  // ==================== 车次数据源设置 ====================
   TrainDataSource _dataSource = TrainDataSource.railRe;
+  TrainEmuDataSource _dataEmuSource = TrainEmuDataSource.railRe;
 
   TrainDataSource get dataSource => _dataSource;
+  TrainEmuDataSource get dataEmuSource => _dataEmuSource;
 
   String get dataSourceDisplayName {
     switch (_dataSource) {
@@ -496,6 +506,17 @@ class AppSettings extends ChangeNotifier {
         return 'RailGo';
       case TrainDataSource.official12306:
         return '12306官方';
+    }
+  }
+
+  String get dataEmuSourceDisplayName {
+    switch (_dataEmuSource) {
+      case TrainEmuDataSource.railRe:
+        return 'Rail.re';
+      case TrainEmuDataSource.railGo:
+        return 'RailGo';
+      case TrainEmuDataSource.moeFactory:
+        return 'MoeFactory';
     }
   }
 
@@ -510,6 +531,10 @@ class AppSettings extends ChangeNotifier {
     }
   }
 
+  String get dataEmuSourceDescription {
+    return '第三方数据源，提供更全面的车型信息';
+  }
+
   Future<void> setDataSource(TrainDataSource source) async {
     if (_dataSource != source) {
       _dataSource = source;
@@ -517,6 +542,18 @@ class AppSettings extends ChangeNotifier {
       // 保存到本地存储
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt('dataSource', source.index);
+
+      notifyListeners();
+    }
+  }
+
+  Future<void> setEmuDataSource(TrainEmuDataSource source) async {
+    if (_dataEmuSource != source) {
+      _dataEmuSource = source;
+
+      // 保存到本地存储
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('dataEmuSource', source.index);
 
       notifyListeners();
     }
@@ -542,6 +579,8 @@ class AppSettings extends ChangeNotifier {
     _iconPackPath = '';
     _iconPackManifest = {};
     _iconPackMetadata = _createDefaultMetadata();
+    _dataSource = TrainDataSource.railRe;
+    _dataEmuSource = TrainEmuDataSource.railRe;
   }
 
   // ==================== 主题设置方法 ====================
@@ -807,9 +846,9 @@ class AppSettings extends ChangeNotifier {
         final files = await appDocDir.list().toList();
         for (final file in files) {
           if (file is File) {
-              await file.delete();
+            await file.delete();
           } else if (file is Directory) {
-              await file.delete(recursive: true);
+            await file.delete(recursive: true);
           }
         }
       }
@@ -822,9 +861,9 @@ class AppSettings extends ChangeNotifier {
         final tempFiles = await tempDir.list().toList();
         for (final file in tempFiles) {
           if (file is File) {
-              await file.delete();
+            await file.delete();
           } else if (file is Directory) {
-              await file.delete(recursive: true);
+            await file.delete(recursive: true);
           }
         }
       }
@@ -879,8 +918,6 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
-  int _settingsTapCount = 0;
-  DateTime? _lastTapTime;
   OverlayEntry? _tapCounterOverlay;
 
   final List<Widget> _pages = [
@@ -898,36 +935,9 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _handleSettingsTap() {
-    final now = DateTime.now();
-
-    // 重置计数器（如果距离上次点击超过5秒）
-    if (_lastTapTime != null &&
-        now.difference(_lastTapTime!) > const Duration(seconds: 5)) {
-      _settingsTapCount = 0;
-    }
-
-    _lastTapTime = now;
-    _settingsTapCount++;
-
-    if (_settingsTapCount >= 10) {
-      _settingsTapCount = 0;
-      _hideTapCounterOverlay();
-
-      // 直接执行重置
-      _performImmediateReset();
-    }
-
     setState(() {
       _currentIndex = 3; // 切换到设置页面
     });
-  }
-
-  Future<void> _performImmediateReset() async {
-    final context = this.context;
-    final settings = Provider.of<AppSettings>(context, listen: false);
-
-    await settings.resetAllSettings();
-    exit(0);
   }
 
   @override
@@ -947,7 +957,6 @@ class _MainScreenState extends State<MainScreen> {
           if (index == 3) { // 设置页面索引
             _handleSettingsTap();
           } else {
-            _settingsTapCount = 0; // 重置计数器
             _hideTapCounterOverlay();
             setState(() => _currentIndex = index);
           }

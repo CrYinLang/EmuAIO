@@ -302,7 +302,7 @@ class _HomePageState extends State<HomePage> {
     _loadBureauPage(page);
   }
 
-  // ==================== 主搜索逻辑 ====================
+// ==================== 主搜索逻辑 ====================
   Future<void> _performSearch() async {
     if (isLoading) return;
 
@@ -376,7 +376,7 @@ class _HomePageState extends State<HomePage> {
               Map<String, dynamic> data = json.decode(resp12306.body);
 
               if (data['content'] == null) {
-                setState(() => errorMsg = '返回数据格式错误: content为空\n当前数据源: ${settings.dataSource.toString().split('.').last}');
+                setState(() => errorMsg = '返回数据格式错误\n当前数据源: ${settings.dataSource.toString().split('.').last}');
                 return;
               }
 
@@ -516,13 +516,79 @@ class _HomePageState extends State<HomePage> {
         // 查询交路（一次即可，重联共用）
         String routeInfo = '';
         final routeEmu = uniqueEmuNos.first;
-        http.Response? emuResp;  // Declare as http.Response instead of String
+        http.Response? emuResp;
 
-        if (settings.dataSource == TrainDataSource.railRe) {
+        if (settings.dataEmuSource == TrainEmuDataSource.moeFactory) {
+          // ==================== moeFactory 数据源 ====================
+          // POST请求，需要特殊处理
+          final postUrl = 'https://rail.moefactory.com/api/emuSerialNumber/query';
+
+          // 构建POST请求体
+          final Map<String, String> requestBody = {
+            'keyword': routeEmu,
+          };
+
+          // 发送POST请求
+          emuResp = await http.post(
+            Uri.parse(postUrl),
+            headers: {
+              ...headers,
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: requestBody,
+          ).timeout(Duration(seconds: 10));
+
+          if (emuResp.statusCode == 200 &&
+              emuResp.body.isNotEmpty) {
+
+            final Map<String, dynamic> response = json.decode(emuResp.body);
+
+            // 检查响应code
+            if (response['code'] == 200) {
+              // 获取data数组
+              final List<dynamic> data = response['data'] ?? [];
+
+              if (data.isNotEmpty) {
+                // 取第一条数据
+                final item = data[0];
+                final trainNo = item['trainNumber']?.toString().trim() ?? '';
+                final date = item['date']?.toString().trim() ?? '';
+
+                if (trainNo.isNotEmpty) {
+                  routeInfo = '正在担当: $date\n本务车次: $trainNo';
+                }
+              }
+            }
+          }
+
+        } else if (settings.dataEmuSource == TrainEmuDataSource.railGo) {
+          // ==================== railGo 数据源 ====================
+          emuResp = await http.get(
+            Uri.parse('https://emu.data.railgo.zenglingkun.cn/emu/$routeEmu'),
+            headers: headers,
+          ).timeout(Duration(seconds: 10));
+
+          if (emuResp.statusCode == 200 &&
+              emuResp.body.isNotEmpty &&
+              emuResp.body != '[]') {
+            final emuData = json.decode(emuResp.body);
+            if (emuData.isNotEmpty) {
+              final item = emuData[0];
+              final trainNo = item['train_no']?.toString().trim() ?? '';
+              final date = item['date']?.toString() ?? '';
+
+              if (trainNo.isNotEmpty) {
+                routeInfo = '正在担当: $date\n本务车次: $trainNo';
+              }
+            }
+          }
+
+        } else {
+          // ==================== rail.re 数据源 ====================
           emuResp = await http.get(
             Uri.parse('https://api.rail.re/emu/$routeEmu'),
             headers: headers,
-          );
+          ).timeout(Duration(seconds: 10));
 
           if (emuResp.statusCode == 200 &&
               emuResp.body.isNotEmpty &&
@@ -663,8 +729,15 @@ class _HomePageState extends State<HomePage> {
 
           await Future.wait(emuToRecord.keys.map((emuNo) async {
             try {
+              final settings = Provider.of<AppSettings>(context, listen: false);
+              String url;
+              if (settings.dataSource == TrainDataSource.railGo) {
+                url = 'https://emu.data.railgo.zenglingkun.cn/emu/';
+              } else{
+                url = 'https://api.rail.re/emu/$emuNo';
+              }
               final resp = await http.get(
-                Uri.parse('https://api.rail.re/emu/$emuNo'),
+                Uri.parse(url),
                 headers: headers,
               );
 
