@@ -27,7 +27,7 @@ android {
 
     packaging {
         jniLibs.excludes.add("lib/x86/**")
-//        jniLibs.excludes.add("lib/x86_64/**")
+        jniLibs.excludes.add("lib/x86_64/**")
         jniLibs.excludes.add("lib/armeabi-v7a/**")
         jniLibs.excludes.add("lib/mips/**")
     }

@@ -17,7 +17,7 @@ import 'settings_page.dart';
 class Vars {
   static const String lastUpdate = '26-02-11-12-45';
   static const String version = '3.0.0.0';
-  static const String build = '300';
+  static const String build = '3000';
   static const String urlServer = 'https://gitee.com/CrYinLang/EmuAIO/raw/master/version.json';
 
   static Future<Map<String, dynamic>?> fetchVersionInfo() async {
