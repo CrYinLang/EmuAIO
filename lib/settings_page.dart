@@ -204,11 +204,25 @@ class _SettingsPageState extends State<SettingsPage> {
                 trailingIcon: Icons.arrow_forward_ios,
                 onTap: () => UpdateUI.showUpdateFlow(context),
               ),
+
+              const Divider(height: 1),
+
               _buildTile(
                 title: '开发者',
                 subtitle: 'Cr.YinLang',
                 trailingIcon: Icons.arrow_forward_ios,
                 onTap: () => Tool.showDeveloperDialog(context),
+              ),
+
+              const Divider(height: 1),
+
+              Tool.buildSwitch(
+                context: context,
+                title: '自动检测更新',
+                subtitle: '在有更新时自动弹出',
+                icon: Icons.browser_updated_sharp,
+                value: settings.showAutoUpdate,
+                onChanged: settings.toggleAutoUpdate,
               ),
             ],
           ),

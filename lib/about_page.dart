@@ -64,7 +64,7 @@ class AboutPage extends StatelessWidget {
     return FutureBuilder<Map<String, dynamic>?>(
       future: Vars.fetchVersionInfo(),
       builder: (context, snapshot) {
-        const String baseText = '提示：新软件开发中,到时候做好进群拿';
+        const String baseText = 'EmuTrain系列的EmuAIO\n可以试试我的EmuTravel';
         String additionalText = '';
         bool hasNewVersion = false;
 

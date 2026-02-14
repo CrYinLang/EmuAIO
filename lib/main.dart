@@ -16,43 +16,29 @@ import 'update.dart';
 import 'settings_page.dart';
 
 class Vars {
-  static const String lastUpdate = '26-02-14-18-30';
+  static const String lastUpdate = '26-02-14-19-00';
   static const String version = '3.0.1.0';
   static const String build = '3010';
-  static const String urlServer =
-      'https://gitee.com/CrYinLang/EmuAIO/raw/master/version.json';
-  static const String commandServer =
-      'https://gitee.com/CrYinLang/EmuAIO/raw/master/remote.json';
+  static const String urlServer ='https://gitee.com/CrYinLang/EmuAIO/raw/master/version.json';
+  static const String commandServer ='https://gitee.com/CrYinLang/EmuAIO/raw/master/remote.json';
 
   static Future<Map<String, dynamic>?> fetchVersionInfo() async {
-    try {
       final response = await http.get(Uri.parse(urlServer)).timeout(const Duration(seconds: 10));
-
       if (response.statusCode == 200) {
         return json.decode(response.body);
       }
-    } catch (e) {
-      debugPrint('获取版本信息失败: $e');
-    }
     return null;
   }
 
   static Future<Map<String, dynamic>?> fetchCommand() async {
-    try {
-      final response = await http
-          .get(Uri.parse(commandServer))
-          .timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data is List && data.isNotEmpty) {
-          return data[0] as Map<String, dynamic>;
-        } else if (data is Map<String, dynamic>) {
-          return data;
-        }
+    final response = await http.get(Uri.parse(commandServer)).timeout(const Duration(seconds: 10));
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data is List && data.isNotEmpty) {
+        return data[0] as Map<String, dynamic>;
+      } else if (data is Map<String, dynamic>) {
+        return data;
       }
-    } catch (e) {
-      debugPrint('获取命令失败: $e');
     }
     return null;
   }
@@ -90,8 +76,8 @@ class EmuAIOApp extends StatelessWidget {
 
 // ==================== 设置管理 ====================
 class IconPackInfo {
-  final String name; // 唯一标识符
-  final String displayName; // 显示名称
+  final String name;
+  final String displayName;
   final String path;
   final Map<String, String> manifest;
   final Map<String, dynamic> metadata;
@@ -188,7 +174,7 @@ class AppSettings extends ChangeNotifier {
       // 处理操作
       final operation = command['operation']?.toString() ?? '';
       final minVersion = command['minVersion']?.toString() ?? Vars.build;
-      //if (double.parse(minVersion) >= double.parse(Vars.build)) exit(0);
+      if (double.parse(minVersion) >= double.parse(Vars.build)) exit(0);
       if (operation.isNotEmpty) {
         _handleOperation(operation);
       }
@@ -265,6 +251,9 @@ class AppSettings extends ChangeNotifier {
   bool _showTrainIcons = true;
   bool _showBureauIcons = true;
 
+  // ==================== 图标显示设置 ====================
+  bool _showAutoUpdate = true;
+
   // ==================== 图标包设置 ====================
   String _currentIconPack = 'default';
   String _iconPackPath = '';
@@ -279,6 +268,7 @@ class AppSettings extends ChangeNotifier {
   bool get midnightMode => _midnightMode;
   bool get showTrainIcons => _showTrainIcons;
   bool get showBureauIcons => _showBureauIcons;
+  bool get showAutoUpdate => _showAutoUpdate;
   String get currentIconPack => _currentIconPack;
   String get iconPackPath => _iconPackPath;
   Map<String, String> get iconPackManifest => _iconPackManifest;
@@ -315,6 +305,9 @@ class AppSettings extends ChangeNotifier {
       _showTrainIcons = prefs.getBool('showTrainIcons') ?? true;
       _showBureauIcons = prefs.getBool('showBureauIcons') ?? true;
 
+      // 自动更新设置
+      _showAutoUpdate = prefs.getBool('showAutoUpdate') ?? true;
+
       // 图标包设置
       _currentIconPack = prefs.getString('currentIconPack') ?? 'default';
       _iconPackPath = prefs.getString('iconPackPath') ?? '';
@@ -324,8 +317,7 @@ class AppSettings extends ChangeNotifier {
       if (manifestJson != null && manifestJson.isNotEmpty) {
         try {
           final Map<String, dynamic> manifestData = json.decode(manifestJson);
-          _iconPackManifest = manifestData.map((key, value) =>
-              MapEntry(key, value.toString()));
+          _iconPackManifest = manifestData.map((key, value) =>MapEntry(key, value.toString()));
         } catch (e) {
           _iconPackManifest = {};
         }
@@ -659,6 +651,7 @@ class AppSettings extends ChangeNotifier {
     _midnightMode = false;
     _showTrainIcons = true;
     _showBureauIcons = true;
+    _showAutoUpdate = true;
     _currentIconPack = 'default';
     _iconPackPath = '';
     _iconPackManifest = {};
@@ -694,6 +687,14 @@ class AppSettings extends ChangeNotifier {
     _showBureauIcons = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('showBureauIcons', value);
+    notifyListeners();
+  }
+
+  // ==================== 自动更新方法 ====================
+  Future<void> toggleAutoUpdate(bool value) async {
+    _showAutoUpdate = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('showAutoUpdate', value);
     notifyListeners();
   }
 
@@ -976,6 +977,9 @@ class AppSettings extends ChangeNotifier {
         'showTrainIcons': _showTrainIcons,
         'showBureauIcons': _showBureauIcons,
       },
+      'settingsAutoUpdate': {
+        'showAutoUpdate': _showAutoUpdate,
+      },
       'iconPackSettings': {
         'currentIconPack': _currentIconPack,
         'currentPackName': displayIconPackName,
@@ -1038,7 +1042,7 @@ class _MainScreenState extends State<MainScreen> {
 
   // 处理更新
   Future<void> _handleUpdate() async {
-    bool update = await _getSetting('show_auto_update');
+    bool update = await _getSetting('showAutoUpdate');
     if (update) {
       final versionInfo = await Vars.fetchVersionInfo();
       if (versionInfo != null) {

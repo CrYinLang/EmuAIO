@@ -17,6 +17,7 @@ class SearchResult {
   final String bureauFullName;
   final String? depot;
   final String? manufacturer;
+  final String? stationinfo;
   final String? remarks;
   final String? routeInfo;
   final double? score;
@@ -32,6 +33,7 @@ class SearchResult {
     required this.bureauFullName,
     this.depot,
     this.manufacturer,
+    this.stationinfo,
     this.remarks,
     this.routeInfo,
     this.score,
@@ -302,7 +304,51 @@ class _HomePageState extends State<HomePage> {
     _loadBureauPage(page);
   }
 
-// ==================== 主搜索逻辑 ====================
+  // =================== 获取始发终到站 ==================
+
+  Future<String?> _getStationInfo(String code) async {
+    try {
+      // 获取当前日期（格式：20260214）
+      final now = DateTime.now();
+      final formattedDate = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+
+      // 构建API URL
+      print(code);
+      final apiUrl = 'https://search.12306.cn/search/v1/train/search?keyword=$code&date=$formattedDate';
+
+      final headers = {'User-Agent': 'Mozilla/5.0'};
+      final response = await http.get(Uri.parse(apiUrl), headers: headers).timeout(Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        print(data);
+
+        if (data['status'] == true && data['data'] != null) {
+          final List<dynamic> trainData = data['data'];
+
+          // 遍历所有车次数据
+          for (var train in trainData) {
+            final stationTrainCode = train['station_train_code']?.toString().trim() ?? '';
+            final fromStation = train['from_station']?.toString().trim() ?? '';
+            final toStation = train['to_station']?.toString().trim() ?? '';
+
+            print('$fromStation ~ $toStation');
+
+            // 精确匹配车次
+            if (stationTrainCode == code && fromStation.isNotEmpty && toStation.isNotEmpty) {
+              return '$fromStation ~ $toStation';
+            }
+          }
+        }
+      }
+
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // ==================== 主搜索逻辑 ====================
   Future<void> _performSearch() async {
     if (isLoading) return;
 
@@ -531,10 +577,6 @@ class _HomePageState extends State<HomePage> {
           // 发送POST请求
           emuResp = await http.post(
             Uri.parse(postUrl),
-            headers: {
-              ...headers,
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
             body: requestBody,
           ).timeout(Duration(seconds: 10));
 
@@ -634,6 +676,8 @@ class _HomePageState extends State<HomePage> {
             final bureau =
             (record['配属路局'] ?? '').toString().trim();
 
+            final stationinfo = await _getStationInfo(fullCode);
+
             _searchResults.add(
               SearchResult(
                 model: record['type_code'] ?? '',
@@ -642,6 +686,7 @@ class _HomePageState extends State<HomePage> {
                 bureauFullName: _getBureauFullName(bureau),
                 depot: record['配属动车所']?.toString(),
                 manufacturer: record['生产厂家']?.toString(),
+                stationinfo: stationinfo,
                 remarks: record['备注']?.toString(),
                 routeInfo: routeInfo.isNotEmpty ? routeInfo : null,
                 score: 1.0,
@@ -654,7 +699,7 @@ class _HomePageState extends State<HomePage> {
         }
       }
 
-// ==================== 车号查询 ====================
+      // ==================== 车号查询 ====================
       else if (searchType == 'trainId') {
         final cleanedInput = cleanString(input);
         if (cleanedInput.length < 4) {
@@ -820,7 +865,6 @@ class _HomePageState extends State<HomePage> {
                 }
               }
             } catch (_) {
-              // 忽略错误，继续处理其他车组
             }
 
             routeMap[emuNo] = null;
@@ -971,6 +1015,7 @@ class _HomePageState extends State<HomePage> {
                   _buildInfoRow('配属路局', result.bureauFullName),
                 if (result.depot != null && result.depot!.isNotEmpty) _buildInfoRow('配属动车所', result.depot!),
                 if (result.manufacturer != null && result.manufacturer!.isNotEmpty) _buildInfoRow('生产厂家', result.manufacturer!),
+                if (result.stationinfo != null) _buildInfoRow('运行交路', result.stationinfo!),
                 if (result.remarks != null && result.remarks!.isNotEmpty) _buildInfoRow('备注', result.remarks!),
               ],
             ),
