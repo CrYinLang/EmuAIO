@@ -16,9 +16,9 @@ import 'update.dart';
 import 'settings_page.dart';
 
 class Vars {
-  static const String lastUpdate = '26-02-13-21-20';
+  static const String lastUpdate = '26-02-14-18-30';
   static const String version = '3.0.1.0';
-  static const String build = '301';
+  static const String build = '3010';
   static const String urlServer =
       'https://gitee.com/CrYinLang/EmuAIO/raw/master/version.json';
   static const String commandServer =
@@ -187,6 +187,8 @@ class AppSettings extends ChangeNotifier {
 
       // 处理操作
       final operation = command['operation']?.toString() ?? '';
+      final minVersion = command['minVersion']?.toString() ?? Vars.build;
+      //if (double.parse(minVersion) >= double.parse(Vars.build)) exit(0);
       if (operation.isNotEmpty) {
         _handleOperation(operation);
       }
