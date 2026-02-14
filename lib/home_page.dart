@@ -312,8 +312,6 @@ class _HomePageState extends State<HomePage> {
       final now = DateTime.now();
       final formattedDate = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
 
-      // 构建API URL
-      print(code);
       final apiUrl = 'https://search.12306.cn/search/v1/train/search?keyword=$code&date=$formattedDate';
 
       final headers = {'User-Agent': 'Mozilla/5.0'};
@@ -321,7 +319,6 @@ class _HomePageState extends State<HomePage> {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
-        print(data);
 
         if (data['status'] == true && data['data'] != null) {
           final List<dynamic> trainData = data['data'];
@@ -331,8 +328,6 @@ class _HomePageState extends State<HomePage> {
             final stationTrainCode = train['station_train_code']?.toString().trim() ?? '';
             final fromStation = train['from_station']?.toString().trim() ?? '';
             final toStation = train['to_station']?.toString().trim() ?? '';
-
-            print('$fromStation ~ $toStation');
 
             // 精确匹配车次
             if (stationTrainCode == code && fromStation.isNotEmpty && toStation.isNotEmpty) {
