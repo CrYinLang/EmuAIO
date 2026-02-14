@@ -1037,7 +1037,6 @@ class _MainScreenState extends State<MainScreen> {
   // 处理更新
   Future<void> _handleUpdate() async {
     bool update = await _getSetting('show_auto_update');
-    print(update);
     if (update) {
       final versionInfo = await Vars.fetchVersionInfo();
       if (versionInfo != null) {
@@ -1051,7 +1050,9 @@ class _MainScreenState extends State<MainScreen> {
           final currentBuildNum = int.parse(currentBuild);
 
           if (remoteBuildNum > currentBuildNum) {
-            UpdateUI.showUpdateFlow(context);
+            if (mounted) {
+              UpdateUI.showUpdateFlow(context);
+            }
           }
         }
       }
