@@ -401,6 +401,8 @@ class _HomePageState extends State<HomePage> {
         final settings = Provider.of<AppSettings>(context, listen: false);
         http.Response? resp;
 
+        if (settings.dataSource == TrainDataSource.railGo){setState(() => errorMsg = 'RAILGO数据源已停用!请切换数据源!');}
+
         if (settings.dataSource == TrainDataSource.railRe) {
           resp = await http.get(
             Uri.parse('https://api.rail.re/train/${fullCode.toUpperCase()}'),
@@ -602,8 +604,8 @@ class _HomePageState extends State<HomePage> {
               }
             }
           }
-
         } else if (settings.dataEmuSource == TrainEmuDataSource.railGo) {
+          if (settings.dataSource == TrainDataSource.railGo){setState(() => errorMsg = 'RAILGO数据源已停用!请切换数据源!');}
           // ==================== railGo 数据源 ====================
           emuResp = await http.get(
             Uri.parse('https://emu.data.railgo.zenglingkun.cn/emu/$routeEmu'),
@@ -819,6 +821,7 @@ class _HomePageState extends State<HomePage> {
                 }
               }
               else if (settings.dataEmuSource == TrainEmuDataSource.railGo) {
+                if (settings.dataSource == TrainDataSource.railGo){setState(() => errorMsg = 'RAILGO数据源已停用!请切换数据源!');}
                 // ==================== railGo 数据源 ====================
                 resp = await http.get(
                   Uri.parse('https://emu.data.railgo.zenglingkun.cn/emu/$emuNo'),

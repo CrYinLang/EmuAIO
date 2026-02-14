@@ -46,7 +46,7 @@ class AboutPage extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          '这是一个集成了列车配属、交路查询等功能的综合性查询平台。',
+          '这是一个集成了列车配属,交路查询,图鉴等功能的综合性查询平台。',
           style: TextStyle(
             fontSize: 16,
             color: theme.colorScheme.onSurfaceVariant,
@@ -168,6 +168,12 @@ class AboutPage extends StatelessWidget {
         ),
         _buildDataSourceItemWithIconData(
           context: context,
+          icon: Icons.cloud_circle,
+          title: 'RailGo Group',
+          description: '联网交路查询',
+        ),
+        _buildDataSourceItemWithIconData(
+          context: context,
           icon: Icons.cloud_upload,
           title: '12306',
           description: '联网交路查询',
@@ -177,6 +183,12 @@ class AboutPage extends StatelessWidget {
           icon: Icons.cloud_download,
           title: 'MoeFactory',
           description: '联网车号交路查询',
+        ),
+        _buildDataSourceItemWithIconData(
+          context: context,
+          icon: Icons.account_circle_outlined,
+          title: '所有图片提供者',
+          description: '提供列车图片制作图标',
         ),
       ],
     );
@@ -266,9 +278,7 @@ class AboutPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark
-            ? Color.fromARGB(
-          51, // 0.2 透明度对应 51
+        color: isDark ? Color.fromARGB(51,
           (errorContainer.r * 255).round(),
           (errorContainer.g * 255).round(),
           (errorContainer.b * 255).round(),

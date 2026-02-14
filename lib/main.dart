@@ -17,8 +17,8 @@ import 'settings_page.dart';
 
 class Vars {
   static const String lastUpdate = '26-02-14-19-00';
-  static const String version = '3.0.1.0';
-  static const String build = '3010';
+  static const String version = '3.0.1.1';
+  static const String build = '3011';
   static const String urlServer ='https://gitee.com/CrYinLang/EmuAIO/raw/master/version.json';
   static const String commandServer ='https://gitee.com/CrYinLang/EmuAIO/raw/master/remote.json';
 

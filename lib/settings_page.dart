@@ -100,15 +100,15 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildTrainDataSourceCard(
-                        settings: settings,
-                        source: TrainDataSource.railGo,
-                        title: 'RailGo',
-                        description: '第三方数据源',
-                        icon: Icons.cloud_download,
-                      ),
-                    ),
+                    // Expanded(
+                    //   child: _buildTrainDataSourceCard(
+                    //     settings: settings,
+                    //     source: TrainDataSource.railGo,
+                    //     title: 'RailGo',
+                    //     description: '第三方数据源',
+                    //     icon: Icons.cloud_download,
+                    //   ),
+                    // ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: _buildTrainDataSourceCard(
@@ -159,15 +159,15 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildEmuDataSourceCard(
-                        settings: settings,
-                        source: TrainEmuDataSource.railGo,
-                        title: 'RailGo',
-                        description: '第三方数据源',
-                        icon: Icons.cloud_download,
-                      ),
-                    ),
+                    // Expanded(
+                    //   child: _buildEmuDataSourceCard(
+                    //     settings: settings,
+                    //     source: TrainEmuDataSource.railGo,
+                    //     title: 'RailGo',
+                    //     description: '第三方数据源',
+                    //     icon: Icons.cloud_download,
+                    //   ),
+                    // ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: _buildEmuDataSourceCard(
