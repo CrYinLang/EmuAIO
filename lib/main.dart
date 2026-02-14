@@ -12,25 +12,47 @@ import 'train_model.dart';
 import 'home_page.dart';
 import 'gallery_page.dart';
 import 'about_page.dart';
+import 'update.dart';
 import 'settings_page.dart';
 
 class Vars {
-  static const String lastUpdate = '26-02-11-12-45';
-  static const String version = '3.0.0.0';
-  static const String build = '3000';
-  static const String urlServer = 'https://gitee.com/CrYinLang/EmuAIO/raw/master/version.json';
+  static const String lastUpdate = '26-02-13-21-20';
+  static const String version = '3.0.1.0';
+  static const String build = '301';
+  static const String urlServer =
+      'https://gitee.com/CrYinLang/EmuAIO/raw/master/version.json';
+  static const String commandServer =
+      'https://gitee.com/CrYinLang/EmuAIO/raw/master/remote.json';
 
   static Future<Map<String, dynamic>?> fetchVersionInfo() async {
     try {
-      final response = await http.get(
-          Uri.parse(urlServer)
-      ).timeout(const Duration(seconds: 10));
+      final response = await http.get(Uri.parse(urlServer)).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
       }
     } catch (e) {
       debugPrint('获取版本信息失败: $e');
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> fetchCommand() async {
+    try {
+      final response = await http
+          .get(Uri.parse(commandServer))
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data is List && data.isNotEmpty) {
+          return data[0] as Map<String, dynamic>;
+        } else if (data is Map<String, dynamic>) {
+          return data;
+        }
+      }
+    } catch (e) {
+      debugPrint('获取命令失败: $e');
     }
     return null;
   }
@@ -138,6 +160,66 @@ enum TrainEmuDataSource {
 }
 
 class AppSettings extends ChangeNotifier {
+  // ==================== 远程控制系统 ====================
+
+  String? _commandMessage;
+  bool _showRemoteMessages = true;
+
+  // Getter方法
+  String? get commandMessage => _commandMessage;
+  bool get showRemoteMessages => _showRemoteMessages;
+
+  // 添加远程命令检查方法
+  Future<void> checkRemoteCommand() async {
+    try {
+      final command = await Vars.fetchCommand();
+      if (command == null) {
+        debugPrint('未获取到远程命令');
+        return;
+      }
+
+      // 处理消息
+      final message = command['message']?.toString();
+      if (message != null && message.isNotEmpty && _showRemoteMessages) {
+        _commandMessage = message;
+        notifyListeners();
+      }
+
+      // 处理操作
+      final operation = command['operation']?.toString() ?? '';
+      if (operation.isNotEmpty) {
+        _handleOperation(operation);
+      }
+    } catch (e) {
+      debugPrint('检查远程命令失败: $e');
+    }
+  }
+
+  // 处理远程操作
+  void _handleOperation(String operation) {
+    switch (operation) {
+      case 'exit':
+        Future.delayed(const Duration(milliseconds: 100), () {
+          exit(0);
+        });
+        break;
+    }
+  }
+
+  // 清除命令消息
+  void clearCommandMessage() {
+    _commandMessage = null;
+    notifyListeners();
+  }
+
+  // 保存设置
+  Future<void> setShowRemoteMessages(bool value) async {
+    _showRemoteMessages = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('showRemoteMessages', value);
+    notifyListeners();
+  }
+
   // ==================== 图标文件名获取 ====================
   String getIconFileName(String iconModel) {
     if (_currentIconPack == 'default' || _currentIconPack.isEmpty) {
@@ -941,33 +1023,119 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _handleUpdate();
+    _initializeRemoteCommands();
+  }
+
+  Future<bool> _getSetting(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(key) ?? true;
+  }
+
+  // 处理更新
+  Future<void> _handleUpdate() async {
+    bool update = await _getSetting('show_auto_update');
+    print(update);
+    if (update) {
+      final versionInfo = await Vars.fetchVersionInfo();
+      if (versionInfo != null) {
+        final remoteBuild = versionInfo['Build']?.toString() ?? '';
+        final currentBuild = Vars.build;
+
+        if (remoteBuild.isNotEmpty &&
+            int.tryParse(remoteBuild) != null &&
+            int.tryParse(currentBuild) != null) {
+          final remoteBuildNum = int.parse(remoteBuild);
+          final currentBuildNum = int.parse(currentBuild);
+
+          if (remoteBuildNum > currentBuildNum) {
+            UpdateUI.showUpdateFlow(context);
+          }
+        }
+      }
+    }
+  }
+
+  void _initializeRemoteCommands() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final settings = Provider.of<AppSettings>(context, listen: false);
+      settings.checkRemoteCommand();
+    });
+  }
+
+  @override
   void dispose() {
     _hideTapCounterOverlay();
     super.dispose();
   }
 
+  void _showCommandMessageDialog(BuildContext context, AppSettings settings) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return PopScope(
+          canPop: false,
+          child: AlertDialog(
+            title: const Text('系统消息'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 8),
+                Text(settings.commandMessage!),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  settings.clearCommandMessage();
+                },
+                child: const Text('确定'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _pages[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          if (index == 3) { // 设置页面索引
-            _handleSettingsTap();
-          } else {
-            _hideTapCounterOverlay();
-            setState(() => _currentIndex = index);
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: '首页'),
-          BottomNavigationBarItem(icon: Icon(Icons.photo_library), label: '图鉴'),
-          BottomNavigationBarItem(icon: Icon(Icons.info), label: '关于'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: '设置'),
-        ],
-      ),
+    return Consumer<AppSettings>(
+      builder: (context, settings, _) {
+        // 检查是否有远程消息需要显示
+        if (settings.commandMessage != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _showCommandMessageDialog(context, settings);
+          });
+        }
+
+        return Scaffold(
+          body: _pages[_currentIndex],
+          bottomNavigationBar: BottomNavigationBar(
+            currentIndex: _currentIndex,
+            type: BottomNavigationBarType.fixed,
+            onTap: (index) {
+              if (index == 3) { // 设置页面索引
+                _handleSettingsTap();
+              } else {
+                _hideTapCounterOverlay();
+                setState(() => _currentIndex = index);
+              }
+            },
+            items: const [
+              BottomNavigationBarItem(icon: Icon(Icons.home), label: '首页'),
+              BottomNavigationBarItem(icon: Icon(Icons.photo_library), label: '图鉴'),
+              BottomNavigationBarItem(icon: Icon(Icons.info), label: '关于'),
+              BottomNavigationBarItem(icon: Icon(Icons.settings), label: '设置'),
+            ],
+          ),
+        );
+      },
     );
   }
 }
