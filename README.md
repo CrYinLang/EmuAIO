@@ -1,5 +1,6 @@
 
 <div style="display: flex; align-items: center; gap: 10px;">
+  <img src="./assets/icon/app_icon.png" alt="EmuTravel" style="width: 48px; height: auto;" />
   <h1>EmuAIO 介绍</h1>
 </div>
 
