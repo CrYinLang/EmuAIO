@@ -19,19 +19,21 @@ class Vars {
   static const String lastUpdate = '26-02-14-19-00';
   static const String version = '3.0.1.1';
   static const String build = '3011';
-  static const String urlServer ='https://gitee.com/CrYinLang/EmuAIO/raw/master/version.json';
-  static const String commandServer ='https://gitee.com/CrYinLang/EmuAIO/raw/master/remote.json';
+  static const String urlServer = 'https://gitee.com/CrYinLang/EmuAIO/raw/master/version.json';
+  static const String commandServer = 'https://gitee.com/CrYinLang/EmuAIO/raw/master/remote.json';
 
   static Future<Map<String, dynamic>?> fetchVersionInfo() async {
-      final response = await http.get(Uri.parse(urlServer)).timeout(const Duration(seconds: 10));
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      }
+    final response = await http.get(Uri.parse(urlServer)).timeout(
+        const Duration(seconds: 10));
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    }
     return null;
   }
 
   static Future<Map<String, dynamic>?> fetchCommand() async {
-    final response = await http.get(Uri.parse(commandServer)).timeout(const Duration(seconds: 10));
+    final response = await http.get(Uri.parse(commandServer)).timeout(
+        const Duration(seconds: 10));
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       if (data is List && data.isNotEmpty) {
@@ -48,7 +50,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(
     ChangeNotifierProvider(
-      create: (_) => AppSettings()..loadSettings(),
+      create: (_) =>
+      AppSettings()
+        ..loadSettings(),
       child: const EmuAIOApp(),
     ),
   );
@@ -153,848 +157,880 @@ class AppSettings extends ChangeNotifier {
 
   // Getter方法
   String? get commandMessage => _commandMessage;
+
   bool get showRemoteMessages => _showRemoteMessages;
 
   // 添加远程命令检查方法
   Future<void> checkRemoteCommand() async {
-    try {
-      final command = await Vars.fetchCommand();
-      if (command == null) {
-        debugPrint('未获取到远程命令');
-        return;
-      }
-
-      // 处理消息
-      final message = command['message']?.toString();
-      if (message != null && message.isNotEmpty && _showRemoteMessages) {
-        _commandMessage = message;
-        notifyListeners();
-      }
-
-      // 处理操作
-      final operation = command['operation']?.toString() ?? '';
-      final minVersion = command['minVersion']?.toString() ?? Vars.build;
-      if (double.parse(minVersion) >= double.parse(Vars.build)) exit(0);
-      if (operation.isNotEmpty) {
-        _handleOperation(operation);
-      }
-    } catch (e) {
-      debugPrint('检查远程命令失败: $e');
-    }
-  }
-
-  // 处理远程操作
-  void _handleOperation(String operation) {
-    switch (operation) {
-      case 'exit':
-        Future.delayed(const Duration(milliseconds: 100), () {
-          exit(0);
-        });
-        break;
-    }
-  }
-
-  // 清除命令消息
-  void clearCommandMessage() {
-    _commandMessage = null;
-    notifyListeners();
-  }
-
-  // 保存设置
-  Future<void> setShowRemoteMessages(bool value) async {
-    _showRemoteMessages = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('showRemoteMessages', value);
-    notifyListeners();
-  }
-
-  // ==================== 图标文件名获取 ====================
-  String getIconFileName(String iconModel) {
-    if (_currentIconPack == 'default' || _currentIconPack.isEmpty) {
-      return iconModel;
-    }
-
-    // 检查manifest中是否有这个车型的映射
-    if (_iconPackManifest.containsKey(iconModel)) {
-      final fileName = _iconPackManifest[iconModel];
-      return fileName ?? iconModel;
-    }
-
-    // 特殊处理：如果车型包含CR前缀
-    if (iconModel.startsWith('CR')) {
-      final crType = iconModel.substring(2); // 移除CR前缀
-      final possibleKeys = [
-        iconModel,
-        'CR$crType',
-        crType,
-        iconModel.toLowerCase(),
-        iconModel.toUpperCase(),
-      ];
-
-      for (var key in possibleKeys) {
-        if (_iconPackManifest.containsKey(key)) {
-          final fileName = _iconPackManifest[key];
-          return fileName ?? iconModel;
-        }
-      }
-    }
-
-    return iconModel;
-  }
-
-  // ==================== 主题设置 ====================
-  ThemeMode _themeMode = ThemeMode.dark;
-  bool _midnightMode = false;
-  bool _isLoading = false;
-
-  // ==================== 图标显示设置 ====================
-  bool _showTrainIcons = true;
-  bool _showBureauIcons = true;
-
-  // ==================== 图标显示设置 ====================
-  bool _showAutoUpdate = true;
-
-  // ==================== 图标包设置 ====================
-  String _currentIconPack = 'default';
-  String _iconPackPath = '';
-  Map<String, String> _iconPackManifest = {};
-  Map<String, dynamic> _iconPackMetadata = {};
-
-  // ==================== 图标包列表管理 ====================
-  List<IconPackInfo> _availableIconPacks = [];
-
-  // ==================== Getter 方法 ====================
-  ThemeMode get themeMode => _themeMode;
-  bool get midnightMode => _midnightMode;
-  bool get showTrainIcons => _showTrainIcons;
-  bool get showBureauIcons => _showBureauIcons;
-  bool get showAutoUpdate => _showAutoUpdate;
-  String get currentIconPack => _currentIconPack;
-  String get iconPackPath => _iconPackPath;
-  Map<String, String> get iconPackManifest => _iconPackManifest;
-  Map<String, dynamic> get iconPackMetadata => _iconPackMetadata;
-  bool get isLoading => _isLoading;
-  List<IconPackInfo> get availableIconPacks => _availableIconPacks;
-
-  // ==================== 应用常量 ====================
-  static const String version = Vars.version;
-  static const String build = Vars.build;
-  static const String lastUpdate = Vars.lastUpdate;
-
-  // ==================== 初始化设置 ====================
-  Future<void> loadSettings() async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-
-      // 主题设置
-      _themeMode = (prefs.getBool('isDark') ?? true) ? ThemeMode.dark : ThemeMode.light;
-      _midnightMode = prefs.getBool('midnightMode') ?? false;
-
-      // 车次数据源设置
-      final dataSourceIndex = prefs.getInt('dataSource') ?? 0;
-      _dataSource = TrainDataSource.values[dataSourceIndex.clamp(0, TrainDataSource.values.length - 1)];
-
-      // 车号数据源设置
-      final dataEmuSourceIndex = prefs.getInt('dataEmuSource') ?? 0;
-      _dataEmuSource = TrainEmuDataSource.values[dataEmuSourceIndex.clamp(0, TrainEmuDataSource.values.length - 1)];
-
-      // 图标显示设置
-      _showTrainIcons = prefs.getBool('showTrainIcons') ?? true;
-      _showBureauIcons = prefs.getBool('showBureauIcons') ?? true;
-
-      // 自动更新设置
-      _showAutoUpdate = prefs.getBool('showAutoUpdate') ?? true;
-
-      // 图标包设置
-      _currentIconPack = prefs.getString('currentIconPack') ?? 'default';
-      _iconPackPath = prefs.getString('iconPackPath') ?? '';
-
-      // 加载图标包映射配置
-      final manifestJson = prefs.getString('iconPackManifest');
-      if (manifestJson != null && manifestJson.isNotEmpty) {
-        try {
-          final Map<String, dynamic> manifestData = json.decode(manifestJson);
-          _iconPackManifest = manifestData.map((key, value) =>MapEntry(key, value.toString()));
-        } catch (e) {
-          _iconPackManifest = {};
-        }
-      } else {
-        _iconPackManifest = {};
-      }
-
-      // 加载图标包元信息
-      final metadataJson = prefs.getString('iconPackMetadata');
-      if (metadataJson != null && metadataJson.isNotEmpty) {
-        try {
-          final Map<String, dynamic> metadata = json.decode(metadataJson);
-          _iconPackMetadata = Map<String, dynamic>.from(metadata);
-        } catch (e) {
-          _iconPackMetadata = _createDefaultMetadata();
-        }
-      } else {
-        _iconPackMetadata = _createDefaultMetadata();
-      }
-
-      // 加载图标包列表
-      await _loadIconPacksList();
-
-    } catch (e) {
-      // 设置默认值
-      _setDefaultValues();
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  // ==================== 图标包列表管理方法 ====================
-  Future<void> _loadIconPacksList() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final packsJson = prefs.getString('availableIconPacks');
-
-      if (packsJson != null && packsJson.isNotEmpty) {
-        final List<dynamic> packsList = json.decode(packsJson);
-        _availableIconPacks = packsList.map((pack) {
-          return IconPackInfo.fromJson(pack);
-        }).toList();
-      } else {
-        _availableIconPacks = [];
-      }
-
-      if (!_availableIconPacks.any((pack) => pack.isDefault)) {
-        _availableIconPacks.insert(0, IconPackInfo(
-          name: 'default',
-          displayName: 'EmuAIO主题包',
-          path: '',
-          manifest: {},
-          metadata: {
-            'name': 'EmuAIO主题包',
-            'describe': '内置默认图标,由全国各地车迷提供的列车图片制成,感谢你们的支持!',
-            'author': 'Cr.YinLang',
-            "version": Vars.version
-          },
-          isDefault: true,
-          createdTime: DateTime(2026, 2, 3),
-          iconCount: 0,
-        ));
-      }
-
-    } catch (e) {
-      _availableIconPacks = [];
-    }
-  }
-
-  Future<void> _saveIconPacksList() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    // 过滤掉默认图标包
-    final nonDefaultPacks = _availableIconPacks
-        .where((pack) => !pack.isDefault)
-        .map((pack) => pack.toJson())
-        .toList();
-
-    await prefs.setString('availableIconPacks', json.encode(nonDefaultPacks));
-
-  }
-
-  // 添加图标包
-  Future<void> addIconPack({
-    required String name,
-    required String path,
-    required Map<String, String> manifest,
-    required Map<String, dynamic> metadata,
-  }) async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      // 生成唯一标识符
-      final String uniqueName = '${name}_${DateTime.now().millisecondsSinceEpoch}';
-
-      // 计算实际图标数量
-      final metaKeys = ['name', 'describe', 'description', 'author', 'title', 'packname'];
-      final int iconCount = manifest.keys
-          .where((key) => !metaKeys.contains(key))
-          .length;
-
-      final newPack = IconPackInfo(
-        name: uniqueName,
-        displayName: metadata['name']?.toString() ?? name,
-        path: path,
-        manifest: Map<String, String>.from(manifest),
-        metadata: Map<String, dynamic>.from(metadata),
-        isDefault: false,
-        createdTime: DateTime.now(),
-        iconCount: iconCount,
-        description: metadata['describe']?.toString() ?? metadata['description']?.toString(),
-        author: metadata['author']?.toString(),
-      );
-
-      // 添加到列表
-      _availableIconPacks.add(newPack);
-      await _saveIconPacksList();
-
-      // 自动切换到新图标包
-      await switchIconPack(uniqueName);
-
-    } catch (e) {
-      rethrow;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  // 删除图标包
-  Future<void> deleteIconPack(String packName) async {
-    if (packName == 'default' || packName.isEmpty) {
-      return; // 不能删除默认图标包
-    }
-
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      // 查找要删除的图标包
-      final index = _availableIconPacks.indexWhere((pack) => pack.name == packName);
-      if (index == -1) {
-        throw Exception('图标包不存在: $packName');
-      }
-
-      final packToDelete = _availableIconPacks[index];
-
-      // 如果要删除的是当前正在使用的，先切换回默认
-      if (_currentIconPack == packName) {
-        await resetToDefaultIcons();
-      }
-
-      // 从列表中移除
-      _availableIconPacks.removeAt(index);
-      await _saveIconPacksList();
-
-      // 异步删除对应的文件夹
-      try {
-        final dir = Directory(packToDelete.path);
-        if (await dir.exists()) {
-          await dir.delete(recursive: true);
-        }
-      } catch (e) {
-        debugPrint('删除图标包文件夹失败: $e');
-        // 不抛出错误，只记录日志
-      }
-
-    } catch (e) {
-      rethrow;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  // 切换图标包
-  Future<void> switchIconPack(String packName) async {
-    if (packName == 'default') {
-      await resetToDefaultIcons();
+    final command = await Vars.fetchCommand();
+    if (command == null) {
+      debugPrint('未获取到远程命令');
       return;
     }
 
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      // 查找图标包
-      final pack = _availableIconPacks.firstWhere(
-            (p) => p.name == packName,
-        orElse: () => throw Exception('图标包不存在: $packName'),
-      );
-
-      // 切换到新图标包
-      await changeIconPack(
-        packName,
-        pack.path,
-        pack.manifest,
-      );
-
-      // 更新元信息
-      _iconPackMetadata = Map<String, dynamic>.from(pack.metadata);
-
-      // 保存元信息
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('iconPackMetadata', json.encode(_iconPackMetadata));
-
-    } catch (e) {
-      // 如果切换失败，回退到默认
-      await resetToDefaultIcons();
-      rethrow;
-    } finally {
-      _isLoading = false;
+    // 处理消息
+    final message = command['message']?.toString();
+    if (message != null && message.isNotEmpty && _showRemoteMessages) {
+      _commandMessage = message;
       notifyListeners();
+    }
+
+    // 处理操作
+    final operation = command['operation']?.toString() ?? '';
+    final minVersion = command['minVersion']?.toString() ?? Vars.build;
+    if (double.parse(minVersion) >= double.parse(Vars.build)) exit(0);
+    if (operation.isNotEmpty) {
+      _handleOperation(operation);
+    }
+  }
+}
+
+// 处理远程操作
+void _handleOperation(String operation) {
+  switch (operation) {
+    case 'exit':
+      Future.delayed(const Duration(milliseconds: 100), () {
+        exit(0);
+      });
+      break;
+  }
+}
+
+// 清除命令消息
+void clearCommandMessage() {
+  _commandMessage = null;
+  notifyListeners();
+}
+
+// 保存设置
+Future<void> setShowRemoteMessages(bool value) async {
+  _showRemoteMessages = value;
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setBool('showRemoteMessages', value);
+  notifyListeners();
+}
+
+// ==================== 图标文件名获取 ====================
+String getIconFileName(String iconModel) {
+  if (_currentIconPack == 'default' || _currentIconPack.isEmpty) {
+    return iconModel;
+  }
+
+  // 检查manifest中是否有这个车型的映射
+  if (_iconPackManifest.containsKey(iconModel)) {
+    final fileName = _iconPackManifest[iconModel];
+    return fileName ?? iconModel;
+  }
+
+  // 特殊处理：如果车型包含CR前缀
+  if (iconModel.startsWith('CR')) {
+    final crType = iconModel.substring(2); // 移除CR前缀
+    final possibleKeys = [
+      iconModel,
+      'CR$crType',
+      crType,
+      iconModel.toLowerCase(),
+      iconModel.toUpperCase(),
+    ];
+
+    for (var key in possibleKeys) {
+      if (_iconPackManifest.containsKey(key)) {
+        final fileName = _iconPackManifest[key];
+        return fileName ?? iconModel;
+      }
     }
   }
 
-  // 加载所有图标包
-  Future<void> loadAllIconPacks() async {
+  return iconModel;
+}
+
+// ==================== 主题设置 ====================
+ThemeMode _themeMode = ThemeMode.dark;
+bool _midnightMode = false;
+bool _isLoading = false;
+
+// ==================== 图标显示设置 ====================
+bool _showTrainIcons = true;
+bool _showBureauIcons = true;
+
+// ==================== 图标显示设置 ====================
+bool _showAutoUpdate = true;
+
+// ==================== 图标包设置 ====================
+String _currentIconPack = 'default';
+String _iconPackPath = '';
+Map<String, String> _iconPackManifest = {};
+Map<String, dynamic> _iconPackMetadata = {};
+
+// ==================== 图标包列表管理 ====================
+List<IconPackInfo> _availableIconPacks = [];
+
+// ==================== Getter 方法 ====================
+ThemeMode get themeMode => _themeMode;
+
+bool get midnightMode => _midnightMode;
+
+bool get showTrainIcons => _showTrainIcons;
+
+bool get showBureauIcons => _showBureauIcons;
+
+bool get showAutoUpdate => _showAutoUpdate;
+
+String get currentIconPack => _currentIconPack;
+
+String get iconPackPath => _iconPackPath;
+
+Map<String, String> get iconPackManifest => _iconPackManifest;
+
+Map<String, dynamic> get iconPackMetadata => _iconPackMetadata;
+
+bool get isLoading => _isLoading;
+
+List<IconPackInfo> get availableIconPacks => _availableIconPacks;
+
+// ==================== 应用常量 ====================
+static const String version = Vars.version;
+static const String build = Vars.build;
+static const String lastUpdate = Vars.lastUpdate;
+
+// ==================== 初始化设置 ====================
+Future<void> loadSettings() async {
+  _isLoading = true;
+  notifyListeners();
+
+  try {
+    final prefs = await SharedPreferences.getInstance();
+
+    // 主题设置
+    _themeMode =
+    (prefs.getBool('isDark') ?? true) ? ThemeMode.dark : ThemeMode.light;
+    _midnightMode = prefs.getBool('midnightMode') ?? false;
+
+    // 车次数据源设置
+    final dataSourceIndex = prefs.getInt('dataSource') ?? 0;
+    _dataSource = TrainDataSource.values[dataSourceIndex.clamp(
+        0, TrainDataSource.values.length - 1)];
+
+    // 车号数据源设置
+    final dataEmuSourceIndex = prefs.getInt('dataEmuSource') ?? 0;
+    _dataEmuSource = TrainEmuDataSource.values[dataEmuSourceIndex.clamp(
+        0, TrainEmuDataSource.values.length - 1)];
+
+    // 图标显示设置
+    _showTrainIcons = prefs.getBool('showTrainIcons') ?? true;
+    _showBureauIcons = prefs.getBool('showBureauIcons') ?? true;
+
+    // 自动更新设置
+    _showAutoUpdate = prefs.getBool('showAutoUpdate') ?? true;
+
+    // 图标包设置
+    _currentIconPack = prefs.getString('currentIconPack') ?? 'default';
+    _iconPackPath = prefs.getString('iconPackPath') ?? '';
+
+    // 加载图标包映射配置
+    final manifestJson = prefs.getString('iconPackManifest');
+    if (manifestJson != null && manifestJson.isNotEmpty) {
+      try {
+        final Map<String, dynamic> manifestData = json.decode(manifestJson);
+        _iconPackManifest =
+            manifestData.map((key, value) => MapEntry(key, value.toString()));
+      } catch (e) {
+        _iconPackManifest = {};
+      }
+    } else {
+      _iconPackManifest = {};
+    }
+
+    // 加载图标包元信息
+    final metadataJson = prefs.getString('iconPackMetadata');
+    if (metadataJson != null && metadataJson.isNotEmpty) {
+      try {
+        final Map<String, dynamic> metadata = json.decode(metadataJson);
+        _iconPackMetadata = Map<String, dynamic>.from(metadata);
+      } catch (e) {
+        _iconPackMetadata = _createDefaultMetadata();
+      }
+    } else {
+      _iconPackMetadata = _createDefaultMetadata();
+    }
+
+    // 加载图标包列表
     await _loadIconPacksList();
+  } catch (e) {
+    // 设置默认值
+    _setDefaultValues();
+  } finally {
+    _isLoading = false;
     notifyListeners();
   }
+}
 
-  // 获取当前激活的图标包信息
-  IconPackInfo? getCurrentPackInfo() {
-    if (_currentIconPack == 'default') {
-      return _availableIconPacks.firstWhere(
-            (pack) => pack.isDefault,
-        orElse: () => IconPackInfo(
-          name: 'default',
-          displayName: '默认图标包',
-          path: '',
-          manifest: {},
-          metadata: _iconPackMetadata,
-          isDefault: true,
-          createdTime: DateTime.now(),
-          iconCount: 0,
-        ),
-      );
+// ==================== 图标包列表管理方法 ====================
+Future<void> _loadIconPacksList() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final packsJson = prefs.getString('availableIconPacks');
+
+    if (packsJson != null && packsJson.isNotEmpty) {
+      final List<dynamic> packsList = json.decode(packsJson);
+      _availableIconPacks = packsList.map((pack) {
+        return IconPackInfo.fromJson(pack);
+      }).toList();
+    } else {
+      _availableIconPacks = [];
     }
 
+    if (!_availableIconPacks.any((pack) => pack.isDefault)) {
+      _availableIconPacks.insert(0, IconPackInfo(
+        name: 'default',
+        displayName: 'EmuAIO主题包',
+        path: '',
+        manifest: {},
+        metadata: {
+          'name': 'EmuAIO主题包',
+          'describe': '内置默认图标,由全国各地车迷提供的列车图片制成,感谢你们的支持!',
+          'author': 'Cr.YinLang',
+          "version": Vars.version
+        },
+        isDefault: true,
+        createdTime: DateTime(2026, 2, 3),
+        iconCount: 0,
+      ));
+    }
+  } catch (e) {
+    _availableIconPacks = [];
+  }
+}
+
+Future<void> _saveIconPacksList() async {
+  final prefs = await SharedPreferences.getInstance();
+
+  // 过滤掉默认图标包
+  final nonDefaultPacks = _availableIconPacks
+      .where((pack) => !pack.isDefault)
+      .map((pack) => pack.toJson())
+      .toList();
+
+  await prefs.setString('availableIconPacks', json.encode(nonDefaultPacks));
+}
+
+// 添加图标包
+Future<void> addIconPack({
+  required String name,
+  required String path,
+  required Map<String, String> manifest,
+  required Map<String, dynamic> metadata,
+}) async {
+  _isLoading = true;
+  notifyListeners();
+
+  try {
+    // 生成唯一标识符
+    final String uniqueName = '${name}_${DateTime
+        .now()
+        .millisecondsSinceEpoch}';
+
+    // 计算实际图标数量
+    final metaKeys = [
+      'name',
+      'describe',
+      'description',
+      'author',
+      'title',
+      'packname'
+    ];
+    final int iconCount = manifest.keys
+        .where((key) => !metaKeys.contains(key))
+        .length;
+
+    final newPack = IconPackInfo(
+      name: uniqueName,
+      displayName: metadata['name']?.toString() ?? name,
+      path: path,
+      manifest: Map<String, String>.from(manifest),
+      metadata: Map<String, dynamic>.from(metadata),
+      isDefault: false,
+      createdTime: DateTime.now(),
+      iconCount: iconCount,
+      description: metadata['describe']?.toString() ??
+          metadata['description']?.toString(),
+      author: metadata['author']?.toString(),
+    );
+
+    // 添加到列表
+    _availableIconPacks.add(newPack);
+    await _saveIconPacksList();
+
+    // 自动切换到新图标包
+    await switchIconPack(uniqueName);
+  } catch (e) {
+    rethrow;
+  } finally {
+    _isLoading = false;
+    notifyListeners();
+  }
+}
+
+// 删除图标包
+Future<void> deleteIconPack(String packName) async {
+  if (packName == 'default' || packName.isEmpty) {
+    return; // 不能删除默认图标包
+  }
+
+  _isLoading = true;
+  notifyListeners();
+
+  try {
+    // 查找要删除的图标包
+    final index = _availableIconPacks.indexWhere((pack) =>
+    pack.name == packName);
+    if (index == -1) {
+      throw Exception('图标包不存在: $packName');
+    }
+
+    final packToDelete = _availableIconPacks[index];
+
+    // 如果要删除的是当前正在使用的，先切换回默认
+    if (_currentIconPack == packName) {
+      await resetToDefaultIcons();
+    }
+
+    // 从列表中移除
+    _availableIconPacks.removeAt(index);
+    await _saveIconPacksList();
+
+    // 异步删除对应的文件夹
     try {
-      return _availableIconPacks.firstWhere((pack) => pack.name == _currentIconPack);
+      final dir = Directory(packToDelete.path);
+      if (await dir.exists()) {
+        await dir.delete(recursive: true);
+      }
     } catch (e) {
-      return null;
+      debugPrint('删除图标包文件夹失败: $e');
+      // 不抛出错误，只记录日志
+    }
+  } catch (e) {
+    rethrow;
+  } finally {
+    _isLoading = false;
+    notifyListeners();
+  }
+}
+
+// 切换图标包
+Future<void> switchIconPack(String packName) async {
+  if (packName == 'default') {
+    await resetToDefaultIcons();
+    return;
+  }
+
+  _isLoading = true;
+  notifyListeners();
+
+  try {
+    // 查找图标包
+    final pack = _availableIconPacks.firstWhere(
+          (p) => p.name == packName,
+      orElse: () => throw Exception('图标包不存在: $packName'),
+    );
+
+    // 切换到新图标包
+    await changeIconPack(
+      packName,
+      pack.path,
+      pack.manifest,
+    );
+
+    // 更新元信息
+    _iconPackMetadata = Map<String, dynamic>.from(pack.metadata);
+
+    // 保存元信息
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('iconPackMetadata', json.encode(_iconPackMetadata));
+  } catch (e) {
+    // 如果切换失败，回退到默认
+    await resetToDefaultIcons();
+    rethrow;
+  } finally {
+    _isLoading = false;
+    notifyListeners();
+  }
+}
+
+// 加载所有图标包
+Future<void> loadAllIconPacks() async {
+  await _loadIconPacksList();
+  notifyListeners();
+}
+
+// 获取当前激活的图标包信息
+IconPackInfo? getCurrentPackInfo() {
+  if (_currentIconPack == 'default') {
+    return _availableIconPacks.firstWhere(
+          (pack) => pack.isDefault,
+      orElse: () =>
+          IconPackInfo(
+            name: 'default',
+            displayName: '默认图标包',
+            path: '',
+            manifest: {},
+            metadata: _iconPackMetadata,
+            isDefault: true,
+            createdTime: DateTime.now(),
+            iconCount: 0,
+          ),
+    );
+  }
+
+  try {
+    return _availableIconPacks.firstWhere((pack) =>
+    pack.name == _currentIconPack);
+  } catch (e) {
+    return null;
+  }
+}
+
+// ==================== 车次数据源设置 ====================
+TrainDataSource _dataSource = TrainDataSource.railRe;
+TrainEmuDataSource _dataEmuSource = TrainEmuDataSource.railRe;
+
+TrainDataSource get dataSource => _dataSource;
+
+TrainEmuDataSource get dataEmuSource => _dataEmuSource;
+
+String get dataSourceDisplayName {
+  switch (_dataSource) {
+    case TrainDataSource.railRe:
+      return 'Rail.re';
+    case TrainDataSource.railGo:
+      return 'RailGo';
+    case TrainDataSource.official12306:
+      return '12306官方';
+  }
+}
+
+String get dataEmuSourceDisplayName {
+  switch (_dataEmuSource) {
+    case TrainEmuDataSource.railRe:
+      return 'Rail.re';
+    case TrainEmuDataSource.railGo:
+      return 'RailGo';
+    case TrainEmuDataSource.moeFactory:
+      return 'MoeFactory';
+  }
+}
+
+String get dataSourceDescription {
+  switch (_dataSource) {
+    case TrainDataSource.railRe:
+      return '第三方API，提供更丰富的数据，但可能缺少部分数据';
+    case TrainDataSource.railGo:
+      return '第三方API，提供更丰富的数据，但可能缺少部分数据';
+    case TrainDataSource.official12306:
+      return '官方数据源，最准确可靠，但可能城际和动集没有';
+  }
+}
+
+String get dataEmuSourceDescription {
+  return '第三方数据源，提供更全面的车型信息';
+}
+
+Future<void> setDataSource(TrainDataSource source) async {
+  if (_dataSource != source) {
+    _dataSource = source;
+
+    // 保存到本地存储
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('dataSource', source.index);
+
+    notifyListeners();
+  }
+}
+
+Future<void> setEmuDataSource(TrainEmuDataSource source) async {
+  if (_dataEmuSource != source) {
+    _dataEmuSource = source;
+
+    // 保存到本地存储
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('dataEmuSource', source.index);
+
+    notifyListeners();
+  }
+}
+
+// ==================== 辅助方法 ====================
+Map<String, dynamic> _createDefaultMetadata() {
+  return {
+    'name': _currentIconPack == 'default' ? '默认图标包' : '未命名图标包',
+    'describe': _currentIconPack == 'default'
+        ? '使用内置图标资源'
+        : '自定义图标包',
+    'author': _currentIconPack == 'default' ? '系统' : '未知作者',
+    'iconCount': _iconPackManifest.length,
+    'loadTime': DateTime.now().toIso8601String(),
+  };
+}
+
+void _setDefaultValues() {
+  _themeMode = ThemeMode.dark;
+  _midnightMode = false;
+  _showTrainIcons = true;
+  _showBureauIcons = true;
+  _showAutoUpdate = true;
+  _currentIconPack = 'default';
+  _iconPackPath = '';
+  _iconPackManifest = {};
+  _iconPackMetadata = _createDefaultMetadata();
+  _dataSource = TrainDataSource.railRe;
+  _dataEmuSource = TrainEmuDataSource.railRe;
+}
+
+// ==================== 主题设置方法 ====================
+Future<void> toggleTheme(bool isDark) async {
+  _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setBool('isDark', isDark);
+  notifyListeners();
+}
+
+Future<void> toggleMidnightMode(bool value) async {
+  _midnightMode = value;
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setBool('midnightMode', value);
+  notifyListeners();
+}
+
+// ==================== 图标显示设置方法 ====================
+Future<void> toggleTrainIcons(bool value) async {
+  _showTrainIcons = value;
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setBool('showTrainIcons', value);
+  notifyListeners();
+}
+
+Future<void> toggleBureauIcons(bool value) async {
+  _showBureauIcons = value;
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setBool('showBureauIcons', value);
+  notifyListeners();
+}
+
+// ==================== 自动更新方法 ====================
+Future<void> toggleAutoUpdate(bool value) async {
+  _showAutoUpdate = value;
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setBool('showAutoUpdate', value);
+  notifyListeners();
+}
+
+// ==================== 图标包管理方法 ====================
+Future<void> changeIconPack(String packName,
+    String path,
+    Map<String, String> manifest,) async {
+  _isLoading = true;
+  notifyListeners();
+
+  try {
+    _currentIconPack = packName;
+    _iconPackPath = path;
+    _iconPackManifest = Map<String, String>.from(manifest);
+
+    // 提取元信息
+    _extractMetadataFromManifest(manifest);
+
+    // 异步保存到持久化存储
+    final prefs = await SharedPreferences.getInstance();
+    await Future.wait([
+      prefs.setString('currentIconPack', _currentIconPack),
+      prefs.setString('iconPackPath', _iconPackPath),
+      prefs.setString('iconPackManifest', json.encode(_iconPackManifest)),
+      prefs.setString('iconPackMetadata', json.encode(_iconPackMetadata)),
+    ]);
+  } catch (e) {
+    rethrow;
+  } finally {
+    _isLoading = false;
+    notifyListeners();
+  }
+}
+
+// 修复：改进的元信息提取方法
+void _extractMetadataFromManifest(Map<String, String> manifest) {
+  _iconPackMetadata = {};
+
+  // 检查是否是纯图标映射（没有元信息字段）
+  bool hasMetadata = false;
+  final metaKeys = [
+    'name',
+    'describe',
+    'description',
+    'author',
+    'title',
+    'packname'
+  ];
+
+  for (var key in metaKeys) {
+    if (manifest.containsKey(key)) {
+      hasMetadata = true;
+      break;
     }
   }
 
-  // ==================== 车次数据源设置 ====================
-  TrainDataSource _dataSource = TrainDataSource.railRe;
-  TrainEmuDataSource _dataEmuSource = TrainEmuDataSource.railRe;
+  if (hasMetadata) {
+    // 包含元信息字段，正常提取
+    _extractFromManifestWithMetadata(manifest);
+  } else {
+    // 纯图标映射，从其他来源获取元信息
+    _handlePureIconMap(manifest);
+  }
+}
 
-  TrainDataSource get dataSource => _dataSource;
-  TrainEmuDataSource get dataEmuSource => _dataEmuSource;
+// 处理包含元信息的manifest
+void _extractFromManifestWithMetadata(Map<String, String> manifest) {
+  // 字段名映射
+  final Map<String, List<String>> fieldMappings = {
+    'name': ['name', 'Name', 'NAME', 'title', 'Title', 'packname', 'packName'],
+    'describe': ['describe', 'description', 'Description', 'desc', 'Desc'],
+    'author': ['author', 'Author', 'AUTHOR', 'creator', 'Creator', 'by']
+  };
 
-  String get dataSourceDisplayName {
-    switch (_dataSource) {
-      case TrainDataSource.railRe:
-        return 'Rail.re';
-      case TrainDataSource.railGo:
-        return 'RailGo';
-      case TrainDataSource.official12306:
-        return '12306官方';
+  // 提取名称
+  String? extractedName = _extractFieldValue(manifest, fieldMappings['name']!);
+  if (extractedName != null && extractedName.isNotEmpty) {
+    _iconPackMetadata['name'] = extractedName;
+  } else {
+    _iconPackMetadata['name'] = '未命名图标包';
+  }
+
+  // 提取描述
+  String? extractedDesc = _extractFieldValue(
+      manifest, fieldMappings['describe']!);
+  _iconPackMetadata['describe'] = extractedDesc ?? '';
+
+  // 提取作者
+  String? extractedAuthor = _extractFieldValue(
+      manifest, fieldMappings['author']!);
+  _iconPackMetadata['author'] = extractedAuthor ?? '未知作者';
+
+  // 添加统计信息
+  _iconPackMetadata['iconCount'] = _getIconCount(manifest);
+  _iconPackMetadata['loadTime'] = DateTime.now().toIso8601String();
+}
+
+// 处理纯图标映射
+void _handlePureIconMap(Map<String, String> manifest) {
+  // 使用当前图标包名称作为默认名称
+  _iconPackMetadata['name'] =
+  _currentIconPack != 'default' && _currentIconPack.isNotEmpty
+      ? _currentIconPack
+      : '自定义图标包';
+
+  _iconPackMetadata['describe'] = '从图标包自动生成';
+  _iconPackMetadata['author'] = '用户上传';
+  _iconPackMetadata['iconCount'] = manifest.length;
+  _iconPackMetadata['loadTime'] = DateTime.now().toIso8601String();
+  _iconPackMetadata['isPureIconMap'] = true;
+}
+
+// 获取图标数量（排除元信息字段）
+int _getIconCount(Map<String, String> manifest) {
+  final metaKeys = [
+    'name',
+    'describe',
+    'description',
+    'author',
+    'title',
+    'packname'
+  ];
+  int count = 0;
+
+  for (var key in manifest.keys) {
+    if (!metaKeys.contains(key)) {
+      count++;
     }
   }
+  return count;
+}
 
-  String get dataEmuSourceDisplayName {
-    switch (_dataEmuSource) {
-      case TrainEmuDataSource.railRe:
-        return 'Rail.re';
-      case TrainEmuDataSource.railGo:
-        return 'RailGo';
-      case TrainEmuDataSource.moeFactory:
-        return 'MoeFactory';
+// 字段值提取方法
+String? _extractFieldValue(Map<String, String> manifest,
+    List<String> possibleKeys) {
+  for (var key in possibleKeys) {
+    if (manifest.containsKey(key)) {
+      final value = manifest[key];
+      if (value != null && value.isNotEmpty) {
+        final result = _ensureUtf8String(value);
+        return result;
+      }
     }
   }
+  return null;
+}
 
-  String get dataSourceDescription {
-    switch (_dataSource) {
-      case TrainDataSource.railRe:
-        return '第三方API，提供更丰富的数据，但可能缺少部分数据';
-      case TrainDataSource.railGo:
-        return '第三方API，提供更丰富的数据，但可能缺少部分数据';
-      case TrainDataSource.official12306:
-        return '官方数据源，最准确可靠，但可能城际和动集没有';
-    }
+// UTF-8 字符串处理
+String _ensureUtf8String(String input) {
+  try {
+    if (input.isEmpty) return input;
+    final bytes = utf8.encode(input);
+    return utf8.decode(bytes, allowMalformed: false);
+  } catch (e) {
+    return input.replaceAll(RegExp(r'[^\x00-\x7F\u4e00-\u9fff]'), '');
   }
+}
 
-  String get dataEmuSourceDescription {
-    return '第三方数据源，提供更全面的车型信息';
-  }
+Future<void> resetToDefaultIcons() async {
+  _isLoading = true;
+  notifyListeners();
 
-  Future<void> setDataSource(TrainDataSource source) async {
-    if (_dataSource != source) {
-      _dataSource = source;
-
-      // 保存到本地存储
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('dataSource', source.index);
-
-      notifyListeners();
-    }
-  }
-
-  Future<void> setEmuDataSource(TrainEmuDataSource source) async {
-    if (_dataEmuSource != source) {
-      _dataEmuSource = source;
-
-      // 保存到本地存储
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('dataEmuSource', source.index);
-
-      notifyListeners();
-    }
-  }
-
-  // ==================== 辅助方法 ====================
-  Map<String, dynamic> _createDefaultMetadata() {
-    return {
-      'name': _currentIconPack == 'default' ? '默认图标包' : '未命名图标包',
-      'describe': _currentIconPack == 'default' ? '使用内置图标资源' : '自定义图标包',
-      'author': _currentIconPack == 'default' ? '系统' : '未知作者',
-      'iconCount': _iconPackManifest.length,
-      'loadTime': DateTime.now().toIso8601String(),
-    };
-  }
-
-  void _setDefaultValues() {
-    _themeMode = ThemeMode.dark;
-    _midnightMode = false;
-    _showTrainIcons = true;
-    _showBureauIcons = true;
-    _showAutoUpdate = true;
+  try {
     _currentIconPack = 'default';
     _iconPackPath = '';
     _iconPackManifest = {};
     _iconPackMetadata = _createDefaultMetadata();
-    _dataSource = TrainDataSource.railRe;
-    _dataEmuSource = TrainEmuDataSource.railRe;
-  }
 
-  // ==================== 主题设置方法 ====================
-  Future<void> toggleTheme(bool isDark) async {
-    _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isDark', isDark);
+    await Future.wait([
+      prefs.setString('currentIconPack', 'default'),
+      prefs.setString('iconPackPath', ''),
+      prefs.setString('iconPackManifest', ''),
+      prefs.setString('iconPackMetadata', json.encode(_iconPackMetadata)),
+    ]);
+  } catch (e) {
+    rethrow;
+  } finally {
+    _isLoading = false;
     notifyListeners();
   }
+}
 
-  Future<void> toggleMidnightMode(bool value) async {
-    _midnightMode = value;
+// ==================== 新增：状态同步方法 ====================
+Future<void> refreshSettings() async {
+  await loadSettings();
+}
+
+// 强制同步状态
+void forceNotify() {
+  notifyListeners();
+}
+
+// ==================== 调试和验证方法 ====================
+Map<String, dynamic> getIconPackDebugInfo() {
+  return {
+    'currentIconPack': _currentIconPack,
+    'iconPackPath': _iconPackPath,
+    'manifestCount': _iconPackManifest.length,
+    'metadata': _iconPackMetadata,
+    'isLoading': _isLoading,
+    'availablePacksCount': _availableIconPacks.length,
+    'availablePacks': _availableIconPacks.map((p) => p.displayName).toList(),
+    'appVersion': version,
+    'appBuild': build,
+  };
+}
+
+// 获取显示名称（用于界面显示）
+String get displayIconPackName {
+  final name = _iconPackMetadata['name'] ?? _currentIconPack;
+  if (name == '未命名图标包' || name.isEmpty) {
+    return _currentIconPack == 'default' ? '默认图标包' : '自定义图标包';
+  }
+  return name;
+}
+
+// ==================== 应用信息方法 ====================
+Map<String, String> getAppInfo() {
+  return {
+    'version': version,
+    'build': build,
+    'lastUpdate': lastUpdate,
+    'themeMode': _themeMode.toString(),
+    'midnightMode': _midnightMode.toString(),
+    'iconPack': _currentIconPack,
+    'availableIconPacks': _availableIconPacks.length.toString(),
+  };
+}
+
+// ==================== 重置所有设置 ====================
+Future<void> resetAllSettings() async {
+  _isLoading = true;
+  notifyListeners();
+
+  try {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('midnightMode', value);
-    notifyListeners();
-  }
+    await prefs.clear();
 
-  // ==================== 图标显示设置方法 ====================
-  Future<void> toggleTrainIcons(bool value) async {
-    _showTrainIcons = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('showTrainIcons', value);
-    notifyListeners();
-  }
+    final Directory appDocDir = Directory(
+        (await getApplicationDocumentsDirectory()).path
+    );
 
-  Future<void> toggleBureauIcons(bool value) async {
-    _showBureauIcons = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('showBureauIcons', value);
-    notifyListeners();
-  }
-
-  // ==================== 自动更新方法 ====================
-  Future<void> toggleAutoUpdate(bool value) async {
-    _showAutoUpdate = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('showAutoUpdate', value);
-    notifyListeners();
-  }
-
-  // ==================== 图标包管理方法 ====================
-  Future<void> changeIconPack(
-      String packName,
-      String path,
-      Map<String, String> manifest,
-      ) async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      _currentIconPack = packName;
-      _iconPackPath = path;
-      _iconPackManifest = Map<String, String>.from(manifest);
-
-      // 提取元信息
-      _extractMetadataFromManifest(manifest);
-
-      // 异步保存到持久化存储
-      final prefs = await SharedPreferences.getInstance();
-      await Future.wait([
-        prefs.setString('currentIconPack', _currentIconPack),
-        prefs.setString('iconPackPath', _iconPackPath),
-        prefs.setString('iconPackManifest', json.encode(_iconPackManifest)),
-        prefs.setString('iconPackMetadata', json.encode(_iconPackMetadata)),
-      ]);
-
-    } catch (e) {
-      rethrow;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  // 修复：改进的元信息提取方法
-  void _extractMetadataFromManifest(Map<String, String> manifest) {
-    _iconPackMetadata = {};
-
-    // 检查是否是纯图标映射（没有元信息字段）
-    bool hasMetadata = false;
-    final metaKeys = ['name', 'describe', 'description', 'author', 'title', 'packname'];
-
-    for (var key in metaKeys) {
-      if (manifest.containsKey(key)) {
-        hasMetadata = true;
-        break;
-      }
-    }
-
-    if (hasMetadata) {
-      // 包含元信息字段，正常提取
-      _extractFromManifestWithMetadata(manifest);
-    } else {
-      // 纯图标映射，从其他来源获取元信息
-      _handlePureIconMap(manifest);
-    }
-  }
-
-  // 处理包含元信息的manifest
-  void _extractFromManifestWithMetadata(Map<String, String> manifest) {
-
-    // 字段名映射
-    final Map<String, List<String>> fieldMappings = {
-      'name': ['name', 'Name', 'NAME', 'title', 'Title', 'packname', 'packName'],
-      'describe': ['describe', 'description', 'Description', 'desc', 'Desc'],
-      'author': ['author', 'Author', 'AUTHOR', 'creator', 'Creator', 'by']
-    };
-
-    // 提取名称
-    String? extractedName = _extractFieldValue(manifest, fieldMappings['name']!);
-    if (extractedName != null && extractedName.isNotEmpty) {
-      _iconPackMetadata['name'] = extractedName;
-    } else {
-      _iconPackMetadata['name'] = '未命名图标包';
-    }
-
-    // 提取描述
-    String? extractedDesc = _extractFieldValue(manifest, fieldMappings['describe']!);
-    _iconPackMetadata['describe'] = extractedDesc ?? '';
-
-    // 提取作者
-    String? extractedAuthor = _extractFieldValue(manifest, fieldMappings['author']!);
-    _iconPackMetadata['author'] = extractedAuthor ?? '未知作者';
-
-    // 添加统计信息
-    _iconPackMetadata['iconCount'] = _getIconCount(manifest);
-    _iconPackMetadata['loadTime'] = DateTime.now().toIso8601String();
-  }
-
-  // 处理纯图标映射
-  void _handlePureIconMap(Map<String, String> manifest) {
-
-    // 使用当前图标包名称作为默认名称
-    _iconPackMetadata['name'] = _currentIconPack != 'default' && _currentIconPack.isNotEmpty
-        ? _currentIconPack
-        : '自定义图标包';
-
-    _iconPackMetadata['describe'] = '从图标包自动生成';
-    _iconPackMetadata['author'] = '用户上传';
-    _iconPackMetadata['iconCount'] = manifest.length;
-    _iconPackMetadata['loadTime'] = DateTime.now().toIso8601String();
-    _iconPackMetadata['isPureIconMap'] = true;
-  }
-
-  // 获取图标数量（排除元信息字段）
-  int _getIconCount(Map<String, String> manifest) {
-    final metaKeys = ['name', 'describe', 'description', 'author', 'title', 'packname'];
-    int count = 0;
-
-    for (var key in manifest.keys) {
-      if (!metaKeys.contains(key)) {
-        count++;
-      }
-    }
-    return count;
-  }
-
-  // 字段值提取方法
-  String? _extractFieldValue(Map<String, String> manifest, List<String> possibleKeys) {
-    for (var key in possibleKeys) {
-      if (manifest.containsKey(key)) {
-        final value = manifest[key];
-        if (value != null && value.isNotEmpty) {
-          final result = _ensureUtf8String(value);
-          return result;
+    // 如果文档目录存在，删除其中的所有文件和子目录
+    if (await appDocDir.exists()) {
+      final files = await appDocDir.list().toList();
+      for (final file in files) {
+        if (file is File) {
+          await file.delete();
+        } else if (file is Directory) {
+          await file.delete(recursive: true);
         }
       }
     }
-    return null;
-  }
 
-  // UTF-8 字符串处理
-  String _ensureUtf8String(String input) {
-    try {
-      if (input.isEmpty) return input;
-      final bytes = utf8.encode(input);
-      return utf8.decode(bytes, allowMalformed: false);
-    } catch (e) {
-      return input.replaceAll(RegExp(r'[^\x00-\x7F\u4e00-\u9fff]'), '');
+    final Directory tempDir = Directory(
+        (await getTemporaryDirectory()).path
+    );
+
+    if (await tempDir.exists()) {
+      final tempFiles = await tempDir.list().toList();
+      for (final file in tempFiles) {
+        if (file is File) {
+          await file.delete();
+        } else if (file is Directory) {
+          await file.delete(recursive: true);
+        }
+      }
     }
-  }
-
-  Future<void> resetToDefaultIcons() async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      _currentIconPack = 'default';
-      _iconPackPath = '';
-      _iconPackManifest = {};
-      _iconPackMetadata = _createDefaultMetadata();
-
-      final prefs = await SharedPreferences.getInstance();
-      await Future.wait([
-        prefs.setString('currentIconPack', 'default'),
-        prefs.setString('iconPackPath', ''),
-        prefs.setString('iconPackManifest', ''),
-        prefs.setString('iconPackMetadata', json.encode(_iconPackMetadata)),
-      ]);
-
-    } catch (e) {
-      rethrow;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  // ==================== 新增：状态同步方法 ====================
-  Future<void> refreshSettings() async {
-    await loadSettings();
-  }
-
-  // 强制同步状态
-  void forceNotify() {
+  } finally {
+    _isLoading = false;
     notifyListeners();
   }
+}
 
-  // ==================== 调试和验证方法 ====================
-  Map<String, dynamic> getIconPackDebugInfo() {
-    return {
-      'currentIconPack': _currentIconPack,
-      'iconPackPath': _iconPackPath,
-      'manifestCount': _iconPackManifest.length,
-      'metadata': _iconPackMetadata,
-      'isLoading': _isLoading,
-      'availablePacksCount': _availableIconPacks.length,
-      'availablePacks': _availableIconPacks.map((p) => p.displayName).toList(),
-      'appVersion': version,
-      'appBuild': build,
-    };
-  }
-
-  // 获取显示名称（用于界面显示）
-  String get displayIconPackName {
-    final name = _iconPackMetadata['name'] ?? _currentIconPack;
-    if (name == '未命名图标包' || name.isEmpty) {
-      return _currentIconPack == 'default' ? '默认图标包' : '自定义图标包';
-    }
-    return name;
-  }
-
-  // ==================== 应用信息方法 ====================
-  Map<String, String> getAppInfo() {
-    return {
+// ==================== 导出设置 ====================
+Future<Map<String, dynamic>> exportSettings() async {
+  return {
+    'exportTime': DateTime.now().toIso8601String(),
+    'appInfo': {
       'version': version,
       'build': build,
       'lastUpdate': lastUpdate,
+    },
+    'themeSettings': {
       'themeMode': _themeMode.toString(),
-      'midnightMode': _midnightMode.toString(),
-      'iconPack': _currentIconPack,
-      'availableIconPacks': _availableIconPacks.length.toString(),
-    };
-  }
-
-  // ==================== 重置所有设置 ====================
-  Future<void> resetAllSettings() async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
-
-      final Directory appDocDir = Directory(
-          (await getApplicationDocumentsDirectory()).path
-      );
-
-      // 如果文档目录存在，删除其中的所有文件和子目录
-      if (await appDocDir.exists()) {
-        final files = await appDocDir.list().toList();
-        for (final file in files) {
-          if (file is File) {
-            await file.delete();
-          } else if (file is Directory) {
-            await file.delete(recursive: true);
-          }
-        }
-      }
-
-      final Directory tempDir = Directory(
-          (await getTemporaryDirectory()).path
-      );
-
-      if (await tempDir.exists()) {
-        final tempFiles = await tempDir.list().toList();
-        for (final file in tempFiles) {
-          if (file is File) {
-            await file.delete();
-          } else if (file is Directory) {
-            await file.delete(recursive: true);
-          }
-        }
-      }
-
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  // ==================== 导出设置 ====================
-  Future<Map<String, dynamic>> exportSettings() async {
-    return {
-      'exportTime': DateTime.now().toIso8601String(),
-      'appInfo': {
-        'version': version,
-        'build': build,
-        'lastUpdate': lastUpdate,
-      },
-      'themeSettings': {
-        'themeMode': _themeMode.toString(),
-        'isDark': _themeMode == ThemeMode.dark,
-        'midnightMode': _midnightMode,
-      },
-      'iconSettings': {
-        'showTrainIcons': _showTrainIcons,
-        'showBureauIcons': _showBureauIcons,
-      },
-      'settingsAutoUpdate': {
-        'showAutoUpdate': _showAutoUpdate,
-      },
-      'iconPackSettings': {
-        'currentIconPack': _currentIconPack,
-        'currentPackName': displayIconPackName,
-        'iconPackPath': _iconPackPath,
-        'manifestSize': _iconPackManifest.length,
-        'metadata': _iconPackMetadata,
-      },
-      'iconPackList': {
-        'count': _availableIconPacks.length,
-        'packs': _availableIconPacks.map((p) => p.displayName).toList(),
-      },
-      'isLoading': _isLoading,
-    };
-  }
-}
+      'isDark': _themeMode == ThemeMode.dark,
+      'midnightMode': _midnightMode,
+    },
+    'iconSettings': {
+      'showTrainIcons': _showTrainIcons,
+      'showBureauIcons': _showBureauIcons,
+    },
+    'settingsAutoUpdate': {
+      'showAutoUpdate': _showAutoUpdate,
+    },
+    'iconPackSettings': {
+      'currentIconPack': _currentIconPack,
+      'currentPackName': displayIconPackName,
+      'iconPackPath': _iconPackPath,
+      'manifestSize': _iconPackManifest.length,
+      'metadata': _iconPackMetadata,
+    },
+    'iconPackList': {
+      'count': _availableIconPacks.length,
+      'packs': _availableIconPacks.map((p) => p.displayName).toList(),
+    },
+    'isLoading': _isLoading,
+  };
+}}
 
 // ==================== 主屏幕 ====================
 class MainScreen extends StatefulWidget {
@@ -1136,9 +1172,11 @@ class _MainScreenState extends State<MainScreen> {
             },
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home), label: '首页'),
-              BottomNavigationBarItem(icon: Icon(Icons.photo_library), label: '图鉴'),
+              BottomNavigationBarItem(
+                  icon: Icon(Icons.photo_library), label: '图鉴'),
               BottomNavigationBarItem(icon: Icon(Icons.info), label: '关于'),
-              BottomNavigationBarItem(icon: Icon(Icons.settings), label: '设置'),
+              BottomNavigationBarItem(
+                  icon: Icon(Icons.settings), label: '设置'),
             ],
           ),
         );
@@ -1333,7 +1371,6 @@ class TrainIconWidget extends StatelessWidget {
 
   // 备用图标
   Widget _buildFallbackIcon(String reason) {
-
     return Container(
       width: size,
       height: size,
@@ -1392,7 +1429,8 @@ class TrainIconWidget extends StatelessWidget {
   }
 
   // 验证图标包文件（可以在设置页面调用）
-  static Future<Map<String, dynamic>> validateIconPack(String iconPackPath) async {
+  static Future<Map<String, dynamic>> validateIconPack(
+      String iconPackPath) async {
     try {
       final trainDir = Directory('$iconPackPath/train');
 
@@ -1446,7 +1484,8 @@ class TrainIconWidget extends StatelessWidget {
         'otherFiles': otherFiles.length,
         'sampleFiles': fileDetails,
         'hasTrainDir': true,
-        'allFiles': files.map((f) => f is File ? f.uri.pathSegments.last : f.path).toList(),
+        'allFiles': files.map((f) =>
+        f is File ? f.uri.pathSegments.last : f.path).toList(),
       };
     } catch (e) {
       return {
